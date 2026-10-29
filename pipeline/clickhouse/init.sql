@@ -40,16 +40,27 @@ SELECT
     payload
 FROM slime.kafka_events;
 
--- production_tick summed over players, per station per minute. One row per finished window: plain MergeTree.
+-- production_tick per station per minute. One row per finished window: plain MergeTree.
+-- produced / consumed are sums over players; slimes / input_stock are per-player averages over the minute's ticks
+-- (summing every tick would multiply them by the tick count); multiply by players for a fleet total.
 CREATE TABLE IF NOT EXISTS slime.production_1m (
     window_start DateTime('UTC'),
     station      LowCardinality(String),
     players      UInt32,
-    slimes       UInt32,
+    slimes       Float64,
     produced     UInt64,
     consumed     UInt64,
-    input_stock  UInt64    -- queue size at window end, summed over players
+    input_stock  Float64
 ) ENGINE = MergeTree ORDER BY (window_start, station);
+
+CREATE TABLE IF NOT EXISTS slime.kafka_production_1m (
+    window_start String, station String, players UInt32, slimes Float64, produced UInt64, consumed UInt64, input_stock Float64
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.production_1m',
+    kafka_group_name = 'clickhouse-production-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_production_1m_mv TO slime.production_1m AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, station, players, slimes, produced, consumed, input_stock
+FROM slime.kafka_production_1m;
 
 -- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates/late stay 0 until M3.
 CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
