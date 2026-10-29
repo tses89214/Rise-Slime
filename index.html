@@ -26,13 +26,14 @@
   button.primary:active:not(:disabled) { box-shadow:0 0 0 var(--ink); transform:translate(4px,4px); }
   button:disabled { opacity:.45; cursor:not-allowed; }
 
-  header { display:flex; align-items:center; flex-wrap:wrap; gap:8px 24px; padding:10px 18px; }
+  header { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:10px 18px; }
+  @media (min-width:760px) { header { flex-wrap:nowrap; } .stats { flex-wrap:nowrap; } }
   header h1, .coin, #income { white-space:nowrap; }
   header h1 { font-size:40px; letter-spacing:1px; }
   .coin { display:flex; align-items:center; gap:8px; }
   #coins { font-size:48px; }
   .stats { display:flex; align-items:baseline; gap:8px 20px; flex-wrap:wrap; }
-  #income { min-width:176px; color:#2E9B6B; font-size:32px; white-space:nowrap; } /* fixed width: the header doesn't jitter as the number grows */
+  #income { min-width:112px; color:#2E9B6B; font-size:32px; white-space:nowrap; } /* fixed width: the header doesn't jitter as the number grows */
   .spacer { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
   .short { display:none; }
   .short .item, .icon .item { vertical-align:middle; margin:-6px 0; }
@@ -149,12 +150,12 @@
 <main>
   <header class="box">
     <h1>RISE &amp; SLIME</h1>
-    <div class="stats"><div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b><span style="color:var(--ink2)">coins</span></div><div id="income" class="num">+0.0 / sec</div></div>
+    <div class="stats"><div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b></div><div id="income" class="num">+0.0/s</div></div>
     <div class="spacer">
       <button id="ach"></button><button id="help">Help</button>
       <button id="music" class="icon" aria-label="Music" title="Music"><span class="item sprite" style="background-position:-160px 0"></span></button>
       <button id="sfx" class="icon" aria-label="Sound effects" title="Sound effects"><span class="item sprite" style="background-position:-192px 0"></span></button>
-      <button id="settings">Settings</button>
+      <button id="credits-btn">Credits</button>
     </div>
   </header>
   <section id="scene" class="box" aria-label="Bakery scene"></section>
@@ -194,7 +195,7 @@
   <h2>Credits</h2>
   <p>Original art and code: Po (code MIT).</p>
   <p>Fonts: m5x7 (Daniel Linssen), monogram (Vinícius Menézio), Kenney Fonts (Kenney), all CC0.</p>
-  <p>Music: 8 Bit Concentration Loop (cosmac), Chiptune Loops (MatiasVME), Cunning plan (congusbongus), all CC0.</p>
+  <p>Music: Good Morning (Cakeflaps, You're Perfect Studio), CC0.</p>
   <p>Sound effects: Interface Sounds (Kenney), 10 8bit coin sounds (Luke.RUSTLTD), 25 CC0 mud sfx (rubberduck), all CC0.</p>
   <form method="dialog"><button>Close</button></form>
 </dialog>

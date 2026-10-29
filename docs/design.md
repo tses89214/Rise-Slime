@@ -311,10 +311,8 @@ CC BY 4.0 允許商用與重新散布，條件是標註作者；若修改素材�
 | --- | --- | --- | --- | --- |
 | 背景、店舖外觀 | [Tiny Town](https://kenney.nl/assets/tiny-town)，130 個 16x16 城鎮圖塊，與 Tiny Creatures 同風格 | Kenney | CC0 | 可以 |
 | 介面音效 | [Interface Sounds](https://opengameart.org/content/interface-sounds)：按鈕、確認等介面音 | Kenney | CC0 | 可以 |
-| 主背景音樂 | [8 Bit Concentration Loop](https://opengameart.org/node/174038)，輕快、為循環播放設計 | cosmac | CC0 | 可以 |
-| 背景音樂備選 | [Chiptune Loops](https://opengameart.org/node/88716)，16 首循環曲 | MatiasVME | CC0 | 可以 |
+| 主背景音樂 | [Good Morning](https://opengameart.org/content/good-morning)，輕鬆溫馨的循環小曲（取代原定 8 Bit Concentration Loop、Chiptune Loops、Cunning plan，見 `docs/decisions/`） | Cakeflaps（You're Perfect Studio） | CC0 | 可以 |
 | 背景音樂備選 | [Starlight City](https://opengameart.org/node/143960)，整張專輯皆附循環版 | Zane Little Music | CC0 | 可以 |
-| 選單、轉場 | [Cunning plan](https://opengameart.org/node/112060)，約 10 秒的無縫短循環 | congusbongus | CC0 | 可以 |
 
 **音訊的實作注意事項**
 
@@ -357,7 +355,7 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 
 主畫面由上到下（視覺參考見 `docs/design/main-screen.dc.html`）：
 
-1. **HUD**：遊戲名稱、Coins（大數字縮寫，如 1.2K）、每秒收入、Music · SFX · Settings 按鈕
+1. **HUD**：遊戲名稱、Coins（大數字縮寫，如 1.2K）、每秒收入、Music · SFX 開關、Credits 按鈕
 2. **場景（Scene）**：三個工作區（Farm、Mill、Bakery）加上店門口（Shop）；史萊姆在各區彈跳、轉圈、烘焙，沒材料就睡著，客人在店門口走動
 3. **工作站卡片**（三張並排）：站名、Slimes / Slots、Rate / sec、Queue 庫存條（堆積時變警示色）、− / + 調派按鈕、Upgrade 按鈕（顯示價格）
 4. **最下方**：Lounge（待命區，新史萊姆在這裡等待調派）與 Buy Slime 按鈕（顯示目前價格）
@@ -426,7 +424,7 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 
 **分頁**
 
-主畫面（場景、HUD）固定在上方，次要功能放在下方分頁，分頁隨進度逐步出現。M1 只有 Production 和 Settings 兩頁。
+主畫面（場景、HUD）固定在上方，次要功能放在下方分頁，分頁隨進度逐步出現。M1 只有主畫面，製作名單放在 HUD 的 Credits 對話框。
 
 | 分頁 | 內容 | 解鎖時機 |
 | --- | --- | --- |
@@ -435,7 +433,7 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 | Upgrades | 工位擴建、史萊姆店長 | 第一次存夠錢時（金額暫定） |
 | Orders | 訂單與浮動價格 | M4 |
 | Branch | 開分店（轉生） | 第一次接近停滯時（條件待轉生設計時定） |
-| Settings | 音量、存檔、製作名單 | 一開始 |
+| Settings | 音量、存檔（M1 先以 HUD 的 Credits 對話框顯示製作名單） | 一開始 |
 
 新分頁出現就是新的目標，這本身就是放置遊戲的節奏設計。每次解鎖都記一筆 `feature_unlocked` 事件（M3 隨 schema 改版加入），用來分析玩家在哪個階段卡住。
 

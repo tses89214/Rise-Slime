@@ -32,6 +32,7 @@ const renderAchievements = () => {
 };
 document.querySelectorAll<HTMLElement>('[data-qv]').forEach((e) => { e.textContent = String(QUEUE[e.dataset.qv as keyof typeof QUEUE]); }); // Help text reads the same thresholds
 $('help').onclick = () => ($('helpdlg') as HTMLDialogElement).showModal();
+$('credits-btn').onclick = () => ($('credits') as HTMLDialogElement).showModal();
 $('ach').onclick = () => { renderAchievements(); ($('achievements') as HTMLDialogElement).showModal(); };
 
 // --- state ---
@@ -173,7 +174,7 @@ function gain(id: StationId, n: number) {
 let rate = 0, lastEarned = s.bread * 10, lastRateAt = performance.now(), lastBread = s.bread, lastCoinSfx = 0;
 function render() {
   setText(ui.coins, fmt(s.coins));
-  setText(ui.income, `+${rate >= 1000 ? fmt(rate) : rate.toFixed(1)} / sec`);
+  setText(ui.income, `+${rate >= 1000 ? fmt(rate) : rate.toFixed(1)}/s`);
   const cost = slimeCost(s);
   ui.buy.disabled = s.coins < cost;
   setText(ui.buyCost, `${fmt(cost)} coins`);
@@ -188,7 +189,7 @@ function render() {
     const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
     setText(u.n, String(n));
     setText(u.lv, String(st.level));
-    setText(u.rate, `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]} / sec`);
+    setText(u.rate, `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]}/s`);
     setText(u.ql, id === 'farm' ? 'Queue' : `Queue: ${stock} ${IN[id]}`);
     setText(u.qn, note);
     const w = id === 'farm' ? '0%' : `${barPct(st.stock).toFixed(0)}%`;

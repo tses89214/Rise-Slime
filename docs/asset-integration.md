@@ -101,7 +101,7 @@ tools/
 | --- | --- |
 | HUD、卡片、Lounge 面板 | 白底、3 到 4px `#1F2547` 實線外框、4px 實色位移陰影（`box-shadow: 4px 4px 0 #1F2547`），不用圓角、不用漸層 |
 | 主要按鈕（Upgrade、Buy Slime） | `#FF9EC4` 底、3px 外框；按下時陰影歸零、元件下移 4px，做出按壓感 |
-| 次要按鈕（+ / −、Music、SFX、Settings） | 背景色底、3px 外框 |
+| 次要按鈕（+ / −、Music、SFX、Credits） | 背景色底、3px 外框 |
 | 庫存條 | 外框 3px，填色依堆積量切換正常色、警示色；警示時卡片外框也換成 `#D9661A` |
 | 金幣、產物小圖示 | 用 `items.png` 的圖，CSS 整數倍放大 |
 | 內文 | m5x7，字級用 16 的倍數 |
@@ -114,7 +114,7 @@ tools/
 
 | 觸發時機 | 素材 |
 | --- | --- |
-| 背景音樂 | 8 Bit Concentration Loop，另從 Chiptune Loops、Starlight City 挑一到兩首輪播 |
+| 背景音樂 | Good Morning（單曲循環） |
 | 按鈕點擊 | Kenney Interface Sounds |
 | 麵包售出、收錢 | 10 8bit coin sounds |
 | 升級、解鎖新分頁 | Level up, power up, Coin get |
@@ -128,5 +128,5 @@ tools/
 - [ ] 場景只用 `assets/original/` 的圖，沒有第三方圖像素材
 - [ ] 所有圖都是整數倍縮放，沒有模糊
 - [ ] 史萊姆每種狀態都有對應動畫，沒材料時會睡著並冒 `zzz`
-- [ ] 第三方字型、音訊都列在 `CREDITS.md`、遊戲內製作名單、itch.io 頁面
+- [ ] 第三方字型、音訊都列在 `CREDITS.md`、遊戲內 Credits 對話框、itch.io 頁面
 - [ ] 瀏覽器第一次點擊前不會自動播放音樂
