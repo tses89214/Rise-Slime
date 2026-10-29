@@ -7,14 +7,14 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 160 tests, typecheck and build pass. Game is considered finished; moving on to M2.
 
 ## Done (latest session)
+- ClickHouse in compose (:8123), `pipeline/clickhouse/init.sql` creates `slime.production_1m` and `slime.pipeline_1m` (Flink targets). Verified: tables exist, HTTP insert/select works. init.sql runs on first start only; schema change needs `down -v` of clickhouse-data.
 - Kafka path tested for real: 10 bots x 300s = 1057 events in `events`, 4 in `events.dlq` (malformed injection), survives `docker compose down/up`.
 - `docker-compose.yml`: Kafka UI (http://localhost:8080), listeners WEB_GAME/DOCKER/CONTROLLER, volumes, broker-only `kafka2` (replication factor 2).
 - `scripts/demo.sh`: dev server + seeded demo state.
 
 ## Next
-1. M2: ClickHouse DDL in `pipeline/clickhouse/`.
-2. Flink SQL job (per-minute aggregation) in `pipeline/flink/`, add Flink + ClickHouse to compose.
-3. uPlot dashboard in `dashboard/`.
+1. Flink SQL job (per-minute aggregation) in `pipeline/flink/`, add Flink + ClickHouse to compose.
+2. uPlot dashboard in `dashboard/`.
 
 ## Open / not verified
 - Browser -> collector with `VITE_TELEMETRY=true` never run in a real browser.

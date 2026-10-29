@@ -1,4 +1,4 @@
-# M1: two-node Kafka (KRaft, no ZooKeeper). Flink/ClickHouse arrive in M2.
+# Two-node Kafka (KRaft, no ZooKeeper) + ClickHouse. Flink arrives next.
 #   kafka  = broker + controller   kafka2 = broker only (demo: scaling out, replication)
 # Listener labels: WEB_GAME = clients on your machine, DOCKER = other containers, CONTROLLER = cluster internal.
 x-kafka-common: &kafka-common
@@ -49,6 +49,18 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092,kafka2:29092
     depends_on: [kafka, kafka2]
 
+  # SQL console: docker compose exec clickhouse clickhouse-client; HTTP :8123 for the dashboard
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    ports: ["8123:8123"]
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"   # image default blocks the passwordless default user from outside the container; local dev only
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./pipeline/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # runs on first start only
+    ulimits: {nofile: {soft: 262144, hard: 262144}}
+
 volumes:
+  clickhouse-data:
   kafka-data:
   kafka2-data:
