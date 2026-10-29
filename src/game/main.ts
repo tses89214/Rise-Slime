@@ -93,7 +93,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 
 syncMusic();
 $('scene').innerHTML = [['farm', 'Farm'], ['mill', 'Mill'], ['bakery', 'Bakery']].map(([id, label]) => `<div class="zone" id="zone-${id}"><small>${label}</small><small class="zzz">Zzz</small><div id="slimes-${id}"></div></div>`).join('')
-  + `<div class="zone shop"><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
+  + `<div class="zone shop"><div class="store"></div><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 7}s;animation-duration:${18 + i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
 let rate = 0, lastCoins = s.bread * 10, lastRateAt = performance.now();
 function render() {
   $('coins').textContent = fmt(s.coins);

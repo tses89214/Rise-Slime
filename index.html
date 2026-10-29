@@ -22,8 +22,21 @@
   .zone small.zzz { position:absolute; top:4px; right:6px; color:var(--ink); }
   .slime { display:inline-block; width:64px; height:64px; margin:-14px -10px; background:url(/assets/slimes/blue.png) 0 -128px; animation:idle .9s steps(9) infinite; }
   @keyframes idle { to { background-position:-576px -128px; } }
-  .customer { position:absolute; bottom:4px; width:32px; height:32px; image-rendering:pixelated; animation:walk 9s linear infinite; }
-  @keyframes walk { from { left:-10%; } to { left:105%; } }
+  .customer { position:absolute; bottom:4px; left:-12%; width:32px; height:32px; z-index:1; animation:visit 20s linear infinite; }
+  /* walk in from the left, wander around the shop floor (30%-85%), turn, leave to the right */
+  @keyframes visit {
+    0%   { left:-12%; transform:translateY(0) scaleX(1); }
+    22%  { left:32%;  transform:translateY(0) scaleX(1); }
+    32%  { left:48%;  transform:translateY(-18px) scaleX(1); }
+    42%  { left:66%;  transform:translateY(-8px) scaleX(1); }
+    50%  { left:66%;  transform:translateY(-8px) scaleX(-1); }
+    60%  { left:44%;  transform:translateY(-22px) scaleX(-1); }
+    68%  { left:44%;  transform:translateY(-22px) scaleX(1); }
+    78%  { left:60%;  transform:translateY(-4px) scaleX(1); }
+    88%  { left:84%;  transform:translateY(0) scaleX(1); }
+    100% { left:112%; transform:translateY(0) scaleX(1); }
+  }
+  .store { position:absolute; left:30%; right:12%; top:28px; bottom:0; background:url(/assets/kenney-tiny-town/tile_0003.png) 0 0/48px 48px; border:2px solid #223; opacity:.8; }
   .zone.shop { position:relative; overflow:hidden; }
   .zone.shop img.icon { width:32px; height:32px; vertical-align:middle; }
   .zone.asleep .slime { opacity:.4; }
