@@ -21,6 +21,7 @@
   "dependencies": {
     "fastify": "^5.12.7",
     "kafkajs": "^2.2.4",
+    "uplot": "^1.6.32",
     "zod": "^4.6.7"
   }
 }

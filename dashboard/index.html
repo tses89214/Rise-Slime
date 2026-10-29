@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rise &amp; Slime — Ops Dashboard</title>
+<link rel="stylesheet" href="/dashboard/uplot.css">
+<style>
+  @font-face { font-family:monogram; src:url(/dashboard/font.ttf); }
+  :root { --bg:#EEF0FF; --panel:#FFFFFF; --ink:#1F2547; --ink2:#4A5078; --primary:#FF9EC4; --income:#C9F2E3;
+          --farm:#4FAF6A; --mill:#6FA8FF; --bakery:#FF9EC4; --warn:#D9661A; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:20px; background:var(--bg); color:var(--ink); font:22px/1.2 monogram, monospace; }
+  h1 { margin:0; font-size:36px; }
+  h2 { margin:0 0 8px; font-size:24px; }
+  header { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+  #status { margin-left:auto; color:var(--ink2); }
+  #dot { display:inline-block; width:12px; height:12px; background:var(--farm); border:2px solid var(--ink); margin-right:6px; }
+  #dot.bad { background:var(--warn); }
+  .card { background:var(--panel); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:12px 14px; min-width:0; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:16px; margin-bottom:16px; }
+  .kpi .v { font-size:40px; }
+  .kpi .l { color:var(--ink2); }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
+  .note { color:var(--ink2); font-size:18px; margin-top:4px; }
+  .chart { width:100%; }
+  .empty { color:var(--ink2); padding:70px 0; text-align:center; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:right; padding:3px 6px; border-bottom:2px solid #EEF0FF; }
+  th:first-child, td:first-child { text-align:left; }
+  th { color:var(--ink2); font-weight:normal; }
+  .on { color:var(--farm); } .off { color:var(--ink2); }
+  .u-legend { font:18px monogram, monospace; } .u-legend .u-marker { border-radius:0; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rise &amp; Slime · Ops</h1>
+  <div id="status"><span id="dot"></span><span id="stamp">connecting…</span></div>
+</header>
+
+<section class="kpis">
+  <div class="card kpi"><div class="v" id="k-online">–</div><div class="l">players online</div></div>
+  <div class="card kpi"><div class="v" id="k-dau">–</div><div class="l">DAU · WAU · MAU</div></div>
+  <div class="card kpi"><div class="v" id="k-events">–</div><div class="l">events stored</div></div>
+  <div class="card kpi"><div class="v" id="k-dead">–</div><div class="l">dead-letter rate</div></div>
+</section>
+
+<section class="grid">
+  <div class="card"><h2>Bread chain output / min</h2><div class="chart" id="c-prod"></div><div class="note">produced per station, all players</div></div>
+  <div class="card"><h2>Station queues</h2><div class="chart" id="c-queue"></div><div class="note">input stock waiting, summed over players (rising = bottleneck)</div></div>
+  <div class="card"><h2>Player activity / min</h2><div class="chart" id="c-ops"></div><div class="note">active players, slimes bought, upgrades</div></div>
+  <div class="card"><h2>Pipeline health</h2><div class="chart" id="c-pipe"></div><div class="note">events/min and latency (ms). Bots stamp simulated time, so their latency can read negative; browser players use the real clock.</div></div>
+</section>
+
+<section class="grid">
+  <div class="card"><h2>Richest players</h2><table id="t-rich"></table></div>
+  <div class="card"><h2>Most efficient (last hour)</h2><table id="t-eff"></table></div>
+</section>
+
+<script src="/dashboard/uplot.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const COLORS = { farm:'#4FAF6A', mill:'#6FA8FF', bakery:'#FF9EC4', a:'#1F2547', b:'#F08A24', c:'#4FAF6A' };
+const charts = {};
+
+// rows [{t, <key>...}] -> aligned uPlot data; `by` splits one metric into a series per value (e.g. station).
+function align(rows, keys, by) {
+  const ts = [...new Set(rows.map((r) => r.t))].sort((a, b) => a - b);
+  const idx = new Map(ts.map((t, i) => [t, i]));
+  const names = by ? [...new Set(rows.map((r) => r[by]))] : keys;
+  const out = [ts, ...names.map(() => ts.map(() => null))];
+  for (const r of rows) names.forEach((n, i) => {
+    const v = by ? (r[by] === n ? r[keys[0]] : undefined) : r[n];
+    if (v !== undefined) out[i + 1][idx.get(r.t)] = Number(v);
+  });
+  return { data: out, names };
+}
+
+function draw(id, rows, keys, by, colors, rightAxisFrom) {
+  const el = $(id);
+  if (!rows.length) { el.innerHTML = '<div class="empty">no data in range</div>'; delete charts[id]; return; }
+  const { data, names } = align(rows, keys, by);
+  if (!charts[id]) {
+    el.innerHTML = '';
+    const stroke = (n, i) => colors[n] ?? colors[i];
+    charts[id] = new uPlot({
+      width: el.clientWidth, height: 190, legend: { live:false },
+      scales: { x: { time: true } },
+      axes: [{ stroke:'#4A5078', font:'18px monogram', size:44, grid:{ stroke:'#EEF0FF' } }, { stroke:'#4A5078', font:'18px monogram', size:60, grid:{ stroke:'#EEF0FF' } },
+        ...(rightAxisFrom === undefined ? [] : [{ scale:'right', side:1, stroke:'#F08A24', font:'18px monogram', size:60, grid:{ show:false } }])],
+      series: [{}, ...names.map((n, i) => ({ label:n, stroke:stroke(n, i), width:3, points:{ show:false },
+        ...(rightAxisFrom !== undefined && i >= rightAxisFrom ? { scale:'right' } : {}) }))],
+    }, data, el);
+  } else charts[id].setData(data);
+}
+
+function table(id, cols, rows) {
+  $(id).innerHTML = '<tr>' + cols.map((c) => `<th>${c[0]}</th>`).join('') + '</tr>' +
+    (rows.length ? rows.map((r) => '<tr>' + cols.map((c) => `<td>${c[1](r)}</td>`).join('') + '</tr>').join('') : `<tr><td colspan="${cols.length}" class="off">no data</td></tr>`);
+}
+
+const n = (x) => Number(x).toLocaleString('en-US');
+async function refresh() {
+  try {
+    const d = await (await fetch('/api/dashboard?minutes=60')).json();
+    if (d.error) throw new Error(d.error);
+    const k = d.kpi[0];
+    $('k-online').textContent = n(k.online);
+    $('k-dau').textContent = `${n(k.dau)} · ${n(k.wau)} · ${n(k.mau)}`;
+    $('k-events').textContent = n(k.events);
+    const total = Number(k.events) + Number(k.dead);
+    $('k-dead').textContent = total ? (100 * k.dead / total).toFixed(2) + '%' : '–';
+
+    draw('c-prod', d.production, ['produced'], 'station', COLORS);
+    draw('c-queue', d.production, ['queue'], 'station', COLORS);
+    draw('c-ops', d.ops, ['active', 'purchases', 'upgrades'], null, [COLORS.a, COLORS.b, COLORS.c]);
+    draw('c-pipe', d.pipeline, ['events', 'latency_ms'], null, [COLORS.a, COLORS.b], 1); // latency on the right axis
+
+    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => r.slimes], ['ach.', (r) => r.achievements],
+      ['', (r) => `<span class="${r.online ? 'on' : 'off'}">${r.online ? '● online' : '○ away'}</span>`]], d.richest);
+    table('t-eff', [['player', (r) => r.player_id], ['coins/min', (r) => r.per_min], ['per slime', (r) => r.per_slime], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
+
+    $('dot').className = '';
+    $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');
+  } catch (e) {
+    $('dot').className = 'bad';
+    $('stamp').textContent = 'offline: ' + e.message.slice(0, 80);
+  }
+}
+addEventListener('resize', () => Object.entries(charts).forEach(([id, c]) => c.setSize({ width: $(id).clientWidth, height: 190 })));
+refresh(); setInterval(refresh, 5000);
+</script>
+</body>
+</html>

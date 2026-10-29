@@ -3,6 +3,7 @@
 _Last updated: 2026-10-29 (clocked out)_
 
 ## Status
+M2 pipeline + dashboard first version done: bots/browser -> collector -> Kafka -> Flink -> Kafka -> ClickHouse -> `http://localhost:3000/dashboard` (KPIs, per-station output and queues, activity, pipeline health, richest and most efficient players). Browser telemetry verified in headless Chrome: session_start/production_tick/achievement_unlocked/session_end land in ClickHouse with client=browser.
 M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated, data in volumes) -> Kafka UI.
 160 tests, typecheck and build pass. Game is considered finished; moving on to M2.
 
@@ -14,10 +15,10 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - `scripts/demo.sh`: dev server + seeded demo state.
 
 ## Next
-1. uPlot dashboard in `dashboard/`.
+1. M3: Flink-side dedup, late events, schema change (merge/mutation). `pipeline_1m.duplicates/late` are still 0.
+2. Dashboard polish: DLQ/duplicate panels, time-range picker, a way to see browser vs bot.
 
 ## Open / not verified
-- Browser -> collector with `VITE_TELEMETRY=true` never run in a real browser.
 - Right after `docker compose up`, wait ~40s before sending: first topic auto-create can fail with "does not host this topic-partition".
 - Collector prints a `TimeoutNegativeWarning` at startup (cause not investigated, harmless so far).
 - Not built: Phaser, bot `disconnect_rate`/`max_buffer`, Level-up/squish sounds.
