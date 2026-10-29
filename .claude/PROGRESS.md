@@ -19,6 +19,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 2. Dashboard polish: DLQ/duplicate panels, time-range picker, a way to see browser vs bot.
 
 ## Open / not verified
+- `player_state` was changed to take slimes/levels from the latest `production_tick` (purchase/achievement events are missing for progress made before telemetry was on). Existing rows were backfilled by running the MV's SELECT once; a fresh `init.sql` start has no backfill need. Achievement totals are not on the dashboard for the same reason: the game would have to send a state snapshot.
 - Right after `docker compose up`, wait ~40s before sending: first topic auto-create can fail with "does not host this topic-partition".
 - Collector prints a `TimeoutNegativeWarning` at startup (cause not investigated, harmless so far).
 - Not built: Phaser, bot `disconnect_rate`/`max_buffer`, Level-up/squish sounds.

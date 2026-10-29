@@ -10,27 +10,27 @@
   :root { --bg:#EEF0FF; --panel:#FFFFFF; --ink:#1F2547; --ink2:#4A5078; --primary:#FF9EC4; --income:#C9F2E3;
           --farm:#4FAF6A; --mill:#6FA8FF; --bakery:#FF9EC4; --warn:#D9661A; }
   * { box-sizing:border-box; }
-  body { margin:0; padding:20px; background:var(--bg); color:var(--ink); font:22px/1.2 monogram, monospace; }
-  h1 { margin:0; font-size:36px; }
-  h2 { margin:0 0 8px; font-size:24px; }
+  body { margin:0; padding:20px; background:var(--bg); color:var(--ink); font:28px/1.2 monogram, monospace; }
+  h1 { margin:0; font-size:46px; }
+  h2 { margin:0 0 8px; font-size:32px; }
   header { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
   #status { margin-left:auto; color:var(--ink2); }
   #dot { display:inline-block; width:12px; height:12px; background:var(--farm); border:2px solid var(--ink); margin-right:6px; }
   #dot.bad { background:var(--warn); }
   .card { background:var(--panel); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:12px 14px; min-width:0; }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:16px; margin-bottom:16px; }
-  .kpi .v { font-size:40px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-bottom:16px; }
+  .kpi .v { font-size:56px; }
   .kpi .l { color:var(--ink2); }
   .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
-  .note { color:var(--ink2); font-size:18px; margin-top:4px; }
+  .note { color:var(--ink2); font-size:22px; margin-top:6px; }
   .chart { width:100%; }
   .empty { color:var(--ink2); padding:70px 0; text-align:center; }
   table { width:100%; border-collapse:collapse; }
-  th, td { text-align:right; padding:3px 6px; border-bottom:2px solid #EEF0FF; }
+  th, td { text-align:right; padding:4px 8px; border-bottom:2px solid #EEF0FF; }
   th:first-child, td:first-child { text-align:left; }
   th { color:var(--ink2); font-weight:normal; }
   .on { color:var(--farm); } .off { color:var(--ink2); }
-  .u-legend { font:18px monogram, monospace; } .u-legend .u-marker { border-radius:0; }
+  .u-legend { font:22px monogram, monospace; } .u-legend .u-marker { border-radius:0; }
   @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -64,6 +64,7 @@
 const $ = (id) => document.getElementById(id);
 const COLORS = { farm:'#4FAF6A', mill:'#6FA8FF', bakery:'#FF9EC4', a:'#1F2547', b:'#F08A24', c:'#4FAF6A' };
 const charts = {};
+const compact = (v) => Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 }).format(v);
 
 // rows [{t, <key>...}] -> aligned uPlot data; `by` splits one metric into a series per value (e.g. station).
 function align(rows, keys, by) {
@@ -86,10 +87,10 @@ function draw(id, rows, keys, by, colors, rightAxisFrom) {
     el.innerHTML = '';
     const stroke = (n, i) => colors[n] ?? colors[i];
     charts[id] = new uPlot({
-      width: el.clientWidth, height: 190, legend: { live:false },
+      width: el.clientWidth, height: 230, legend: { live:false },
       scales: { x: { time: true } },
-      axes: [{ stroke:'#4A5078', font:'18px monogram', size:44, grid:{ stroke:'#EEF0FF' } }, { stroke:'#4A5078', font:'18px monogram', size:60, grid:{ stroke:'#EEF0FF' } },
-        ...(rightAxisFrom === undefined ? [] : [{ scale:'right', side:1, stroke:'#F08A24', font:'18px monogram', size:60, grid:{ show:false } }])],
+      axes: [{ stroke:'#4A5078', font:'22px monogram', size:50, space:110, grid:{ stroke:'#EEF0FF' } }, { stroke:'#4A5078', font:'22px monogram', size:76, values:(u, v) => v.map(compact), grid:{ stroke:'#EEF0FF' } },
+        ...(rightAxisFrom === undefined ? [] : [{ scale:'right', side:1, stroke:'#F08A24', font:'22px monogram', size:76, values:(u, v) => v.map(compact), grid:{ show:false } }])],
       series: [{}, ...names.map((n, i) => ({ label:n, stroke:stroke(n, i), width:3, points:{ show:false },
         ...(rightAxisFrom !== undefined && i >= rightAxisFrom ? { scale:'right' } : {}) }))],
     }, data, el);
@@ -118,9 +119,9 @@ async function refresh() {
     draw('c-ops', d.ops, ['active', 'purchases', 'upgrades'], null, [COLORS.a, COLORS.b, COLORS.c]);
     draw('c-pipe', d.pipeline, ['events', 'latency_ms'], null, [COLORS.a, COLORS.b], 1); // latency on the right axis
 
-    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => r.slimes], ['ach.', (r) => r.achievements],
+    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['levels', (r) => n(r.levels)],
       ['', (r) => `<span class="${r.online ? 'on' : 'off'}">${r.online ? '● online' : '○ away'}</span>`]], d.richest);
-    table('t-eff', [['player', (r) => r.player_id], ['coins/min', (r) => r.per_min], ['per slime', (r) => r.per_slime], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
+    table('t-eff', [['player', (r) => r.player_id], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
 
     $('dot').className = '';
     $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');
@@ -129,7 +130,7 @@ async function refresh() {
     $('stamp').textContent = 'offline: ' + e.message.slice(0, 80);
   }
 }
-addEventListener('resize', () => Object.entries(charts).forEach(([id, c]) => c.setSize({ width: $(id).clientWidth, height: 190 })));
+addEventListener('resize', () => Object.entries(charts).forEach(([id, c]) => c.setSize({ width: $(id).clientWidth, height: 230 })));
 refresh(); setInterval(refresh, 5000);
 </script>
 </body>

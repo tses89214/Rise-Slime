@@ -133,15 +133,17 @@ FROM slime.kafka_ops_1m;
 
 -- Latest state per player, for the leaderboard. Fed by a materialized view on `events`, not by Flink.
 -- Every column merges idempotently (max / min / argMax by event_time), so duplicate or re-ordered events change nothing.
+-- slimes / levels come from the latest production_tick (stations[].slimes, .level), not from purchase events: a player
+-- whose progress predates telemetry has no purchase events but still reports the right totals. slimes = assigned to stations.
 CREATE TABLE IF NOT EXISTS slime.player_state (
     player_id     String,
     client        SimpleAggregateFunction(anyLast, String),
     bot_persona   SimpleAggregateFunction(anyLast, Nullable(String)),
     first_seen    SimpleAggregateFunction(min, DateTime64(3, 'UTC')),
     last_seen     SimpleAggregateFunction(max, DateTime64(3, 'UTC')),
-    slimes_bought SimpleAggregateFunction(max, UInt32),   -- total_purchased only grows
-    achievements  SimpleAggregateFunction(max, UInt32),   -- total_unlocked only grows
-    coins         AggregateFunction(argMax, Float64, DateTime64(3, 'UTC'))   -- balance goes up and down: latest wins
+    coins         AggregateFunction(argMax, Float64, DateTime64(3, 'UTC')),   -- balance goes up and down: latest wins
+    slimes        AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC')),
+    levels        AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC'))     -- sum of the three station levels
 ) ENGINE = AggregatingMergeTree ORDER BY player_id;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.player_state_mv TO slime.player_state AS
@@ -151,11 +153,11 @@ SELECT
     bot_persona,
     event_time AS first_seen,
     event_time AS last_seen,
-    toUInt32(if(event_type = 'slime_purchased', JSONExtractUInt(payload, 'total_purchased'), 0)) AS slimes_bought,
-    toUInt32(if(event_type = 'achievement_unlocked', JSONExtractUInt(payload, 'total_unlocked'), 0)) AS achievements,
-    argMaxStateIf(JSONExtractFloat(payload, 'coins_balance'), event_time, event_type = 'production_tick') AS coins
+    argMaxStateIf(JSONExtractFloat(payload, 'coins_balance'), event_time, event_type = 'production_tick') AS coins,
+    argMaxStateIf(toUInt32(arraySum(arrayMap(x -> JSONExtractUInt(x, 'slimes'), JSONExtractArrayRaw(payload, 'stations')))), event_time, event_type = 'production_tick') AS slimes,
+    argMaxStateIf(toUInt32(arraySum(arrayMap(x -> JSONExtractUInt(x, 'level'), JSONExtractArrayRaw(payload, 'stations')))), event_time, event_type = 'production_tick') AS levels
 FROM slime.events
-GROUP BY player_id, client, bot_persona, event_time, slimes_bought, achievements;
+GROUP BY player_id, client, bot_persona, event_time;
 
 -- What the dashboard reads. online = seen in the last 2 minutes (production_tick is the heartbeat).
 CREATE VIEW IF NOT EXISTS slime.leaderboard AS
@@ -164,8 +166,8 @@ SELECT
     any(client) AS client,
     any(bot_persona) AS bot_persona,
     argMaxMerge(coins) AS coins_now,
-    max(slimes_bought) AS slimes,
-    max(achievements) AS achievements_unlocked,
+    argMaxMerge(slimes) AS slimes_working,
+    argMaxMerge(levels) AS station_levels,
     min(first_seen) AS first_seen_at,
     max(last_seen) AS last_seen_at,
     last_seen_at > now64(3) - INTERVAL 2 MINUTE AS online
