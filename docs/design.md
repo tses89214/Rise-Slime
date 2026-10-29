@@ -451,7 +451,7 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 | 累計購買史萊姆 | `first_slime`(1)、`slimes_10`、`slimes_25`、`slimes_50`、`slimes_100` |
 | 人員配置 | `pop_20`（同時擁有 20 隻）、`lounge_party`（待命區 5 隻）、`crowded`（單站 10 隻）、`day_off`（清空一站）、`even_steven`（三站人數相同且 ≥ 3）、`perfect_split`（農場 4、磨坊 6、烘焙 5） |
 | 升級 | `first_upgrade`、`well_equipped`（三站都升過）、`level_10`/`level_25`/`level_50`（里程碑）、`all_level_10`、`turbo`（速度 ≥ 5 倍，即 15 級） |
-| 瓶頸 | `backed_up`（庫存 50）、`gridlock`（庫存 200） |
+| 瓶頸 | `backed_up`（庫存 100）、`gridlock`（庫存 200） |
 | 金幣 | `coins_1000`、`coins_10000`、`coins_100000`（同時持有） |
 
 介面：標題列「Achievements 已解鎖/總數」按鈕開清單，解鎖時右下角跳出提示。

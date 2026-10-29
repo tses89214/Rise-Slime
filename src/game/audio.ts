@@ -15,9 +15,15 @@ export const sfx = (f: string) => {
   void a.play().catch(() => {});
 };
 
+const show = (id: string, name: string, v: boolean) => { // icon button: dimmed and struck through when off
+  const b = $(id);
+  b.classList.toggle('off', !v);
+  b.setAttribute('aria-pressed', String(v));
+  b.title = `${name}: ${v ? 'on' : 'off'}`;
+};
 const sync = () => {
-  $('music').textContent = `Music: ${on.music ? 'on' : 'off'}`;
-  $('sfx').textContent = `SFX: ${on.sfx ? 'on' : 'off'}`;
+  show('music', 'Music', on.music);
+  show('sfx', 'Sound effects', on.sfx);
   store.set('rise-slime-music', on.music ? 'on' : 'off');
   store.set('rise-slime-sfx', on.sfx ? 'on' : 'off');
   if (on.music) void music.play().catch(() => {}); else music.pause();

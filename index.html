@@ -31,10 +31,15 @@
   header h1 { font-size:40px; letter-spacing:1px; }
   .coin { display:flex; align-items:center; gap:8px; }
   #coins { font-size:48px; }
-  #income { background:var(--income); border:3px solid var(--ink); padding:2px 12px; font-size:32px; }
+  .stats { display:flex; align-items:baseline; gap:8px 20px; flex-wrap:wrap; }
+  #income { min-width:176px; color:#2E9B6B; font-size:32px; white-space:nowrap; } /* fixed width: the header doesn't jitter as the number grows */
   .spacer { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
   .short { display:none; }
-  @media (max-width:759px) { header h1 { font-size:32px; } .spacer { margin-left:0; width:100%; justify-content:flex-start; } .long { display:none; } .short { display:inline; } }
+  .short .item, .icon .item { display:inline-block; vertical-align:middle; margin:-6px 0; }
+  button.icon { position:relative; width:48px; padding:0; }
+  button.icon.off { opacity:.55; }
+  button.icon.off::after { content:""; position:absolute; left:6px; right:6px; top:50%; height:4px; margin-top:-2px; background:var(--ink); transform:rotate(-45deg); }
+  @media (max-width:759px) { header h1 { font-size:32px; } .spacer { margin-left:0; width:100%; flex-wrap:nowrap; } .spacer button { flex:1; padding:4px 6px; } .spacer button.icon { flex:0 0 48px; } .long { display:none; } .short { display:inline; } }
 
   /* pixel art is sized in --u (an integer number of px per art pixel): 3 on desktop, 2 on small screens; never fractional */
   :root { --u:3px; --i:2px; }
@@ -50,7 +55,7 @@
   @keyframes hop { 0%{background-position-x:calc(-32*var(--u))} 20%{background-position-x:calc(-48*var(--u))} 40%{background-position-x:calc(-64*var(--u))} 60%{background-position-x:calc(-48*var(--u))} 80%{background-position-x:0} }
   @keyframes sleep { 0%{background-position-x:calc(-80*var(--u))} 50%{background-position-x:calc(-96*var(--u))} }
   @keyframes spin { 0%{background-position-x:calc(-112*var(--u))} 25%{background-position-x:0} 50%{background-position-x:calc(-128*var(--u))} 75%{background-position-x:0} }
-  .item { width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(/original/items.png); background-size:calc(96*var(--i)) calc(16*var(--i)); }
+  .item { width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(/original/items.png); background-size:calc(144*var(--i)) calc(16*var(--i)); }
   /* props.png frames (32px): 0 windmill, 1-4 blades at 0/22/45/68 degrees, 5 oven, 6 oven lit, 7 oven embers, 8 cloud */
   .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(/original/props.png); background-size:calc(288*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
   .p-windmill { --f:0; } .p-oven { --f:5; }
@@ -147,9 +152,13 @@
 <main>
   <header class="box">
     <h1>RISE &amp; SLIME</h1>
-    <div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b><span style="color:var(--ink2)">coins</span></div>
-    <div id="income" class="num">+0 / sec</div>
-    <div class="spacer"><button id="ach"></button><button id="help">Help</button><button id="music">Music</button><button id="sfx">SFX</button><button id="settings">Settings</button></div>
+    <div class="stats"><div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b><span style="color:var(--ink2)">coins</span></div><div id="income" class="num">+0.0 / sec</div></div>
+    <div class="spacer">
+      <button id="ach"></button><button id="help">Help</button>
+      <button id="music" class="icon" aria-label="Music" title="Music"><span class="item sprite" style="background-position:-192px 0"></span></button>
+      <button id="sfx" class="icon" aria-label="Sound effects" title="Sound effects"><span class="item sprite" style="background-position:-224px 0"></span></button>
+      <button id="settings">Settings</button>
+    </div>
   </header>
   <section id="scene" class="box" aria-label="Bakery scene"></section>
   <section id="stations"></section>
@@ -175,13 +184,13 @@
   <h2>Upgrades</h2>
   <p>Each level makes a station 10% faster. Levels 10, 25 and 50 double its speed on top of that.</p>
   <h2>Queue bar</h2>
-  <p>It shows how much of the previous product is waiting at a station (the ticks mark 10, 20 and 50).</p>
+  <p>It shows how much of the previous product is waiting at a station (the ticks mark <b data-qv="busy"></b>, <b data-qv="backed"></b> and <b data-qv="jam"></b>).</p>
   <ul>
     <li><i class="sw" style="background:#B7BEDD"></i>Starved: nothing to work on. The slimes sleep.</li>
-    <li><i class="sw" style="background:#6FA8FF"></i>Fine: under 10 waiting.</li>
-    <li><i class="sw" style="background:#F5C342"></i>Getting busy: 10 or more.</li>
-    <li><i class="sw" style="background:#F08A24"></i>Backing up: 20 or more. The slimes sweat; add workers or upgrade.</li>
-    <li><i class="sw" style="background:#E2604A"></i>Jammed: 50 or more.</li>
+    <li><i class="sw" style="background:#6FA8FF"></i>Fine: under <b data-qv="busy"></b> waiting.</li>
+    <li><i class="sw" style="background:#F5C342"></i>Getting busy: <b data-qv="busy"></b> or more.</li>
+    <li><i class="sw" style="background:#F08A24"></i>Backing up: <b data-qv="backed"></b> or more. The slimes sweat; add workers or upgrade.</li>
+    <li><i class="sw" style="background:#E2604A"></i>Jammed: <b data-qv="jam"></b> or more.</li>
   </ul>
 </dialog>
 <dialog id="credits">

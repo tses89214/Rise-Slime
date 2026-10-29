@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
-import { buySlime, newState, step, upgrade } from './sim';
+import { buySlime, newState, QUEUE, step, upgrade } from './sim';
 
 const get = (id: string) => ACHIEVEMENTS.find((a) => a.id === id)!;
 
@@ -50,14 +50,14 @@ describe('conditions', () => {
     s.stations.farm.level = 10;
     expect(get('level_10').test(s)).toBe(true);
   });
-  test('backed_up when mill or bakery queue reaches 50 (farm has no queue)', () => {
+  test('backed_up when the mill or bakery queue reaches QUEUE.backed (farm has no queue)', () => {
     const s = newState();
-    s.stations.mill.stock = 49;
+    s.stations.mill.stock = QUEUE.backed - 1;
     expect(get('backed_up').test(s)).toBe(false);
-    s.stations.mill.stock = 50;
+    s.stations.mill.stock = QUEUE.backed;
     expect(get('backed_up').test(s)).toBe(true);
     s.stations.mill.stock = 0;
-    s.stations.bakery.stock = 50;
+    s.stations.bakery.stock = QUEUE.backed;
     expect(get('backed_up').test(s)).toBe(true);
   });
   test('crowded needs 10 slimes on a single station', () => {
@@ -136,11 +136,11 @@ describe('more conditions', () => {
     t.stations.farm.level = 15; // (1 + 1.5) x 2 = 5
     expect(get('turbo').test(t)).toBe(true);
   });
-  test('gridlock at 200 queued; larger coin tiers', () => {
+  test('gridlock at QUEUE.jam queued; larger coin tiers', () => {
     const s = newState();
-    s.stations.bakery.stock = 199;
+    s.stations.bakery.stock = QUEUE.jam - 1;
     expect(get('gridlock').test(s)).toBe(false);
-    s.stations.bakery.stock = 200;
+    s.stations.bakery.stock = QUEUE.jam;
     expect([get('backed_up').test(s), get('gridlock').test(s)]).toEqual([true, true]);
     s.coins = 10000;
     expect([get('coins_10000').test(s), get('coins_100000').test(s)]).toEqual([true, false]);
@@ -150,6 +150,13 @@ describe('more conditions', () => {
   test('every description says what to do (not just a number)', () => {
     for (const a of ACHIEVEMENTS) expect(a.desc.split(' ').length).toBeGreaterThanOrEqual(4);
   });
+});
+
+test('queue thresholds are ordered and match the documented colours (50 / 100 / 200)', () => {
+  expect(QUEUE.starved).toBeLessThan(QUEUE.busy);
+  expect(QUEUE.busy).toBeLessThan(QUEUE.backed);
+  expect(QUEUE.backed).toBeLessThan(QUEUE.jam);
+  expect([QUEUE.busy, QUEUE.backed, QUEUE.jam]).toEqual([50, 100, 200]);
 });
 
 describe('checkAchievements', () => {

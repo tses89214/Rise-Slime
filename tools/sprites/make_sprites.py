@@ -239,7 +239,46 @@ def item_sweat():
     return img
 
 
-ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz(), "sweat": item_sweat()}
+def item_note():
+    """Beamed eighth notes: the music toggle."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    ink = hx(INK)
+    d.rectangle([5, 3, 12, 5], fill=ink)
+    d.rectangle([5, 3, 6, 12], fill=ink)
+    d.rectangle([11, 3, 12, 10], fill=ink)
+    d.ellipse([2, 10, 6, 14], fill=ink)
+    d.ellipse([8, 8, 12, 12], fill=ink)
+    return img
+
+
+def item_speaker():
+    """Speaker with sound waves: the sound-effects toggle."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    ink = hx(INK)
+    d.rectangle([1, 6, 4, 9], fill=ink)
+    d.polygon([(4, 6), (8, 2), (8, 13), (4, 9)], fill=ink)
+    for x, y0, y1 in ((10, 6, 9), (12, 4, 11), (14, 2, 13)):
+        d.rectangle([x, y0, x, y1], fill=ink)
+    return img
+
+
+def item_star():
+    """Gold star: achievements."""
+    import math
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    pts = []
+    for k in range(10):
+        r = 7.5 if k % 2 == 0 else 3.2
+        a = -math.pi / 2 + k * math.pi / 5
+        pts.append((7.5 + r * math.cos(a), 8.5 + r * math.sin(a)))
+    d.polygon(pts, fill=hx("#F5C342"), outline=hx(INK))
+    return img
+
+
+ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz(), "sweat": item_sweat(), "note": item_note(), "speaker": item_speaker(), "star": item_star()}
 items_row = [list(ITEMS.values())]
 sheet(items_row, 16, 16).save(OUT / "items.png")
 (OUT / "items.json").write_text(json.dumps(atlas("items", items_row, [""], list(ITEMS), 16, 16), indent=2))

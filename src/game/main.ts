@@ -1,5 +1,5 @@
 import { ACHIEVEMENTS, checkAchievements } from '../core/achievements';
-import { type Slime, applyOffline, assignOne, buySlime, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
+import { type Slime, QUEUE, applyOffline, assignOne, buySlime, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { initAudio, sfx } from './audio';
 import { sale, startCustomers } from './customers';
 import { emit } from './telemetry';
@@ -12,8 +12,8 @@ const IN: Record<StationId, string> = { farm: '', mill: 'wheat', bakery: 'flour'
 const SECONDS = { farm: 1, mill: 3, bakery: 5 };
 const CUSTOMERS = 7;
 const MAX_DRAWN = 10;
-const barPct = (stock: number) => Math.min(100, (100 * Math.log10(1 + stock)) / Math.log10(201)); // log scale: 200 queued fills the bar
-const TICKS = [10, 20, 50]; // where the queue turns busy / backing up / jammed // per zone: 5 per row, 2 rows; the rest shows as "+N"
+const barPct = (stock: number) => Math.min(100, (100 * Math.log10(1 + stock)) / Math.log10(1 + 2 * QUEUE.jam)); // log scale: twice the jam level fills the bar
+const TICKS = [QUEUE.busy, QUEUE.backed, QUEUE.jam]; // where the queue turns busy / backing up / jammed // per zone: 5 per row, 2 rows; the rest shows as "+N"
 
 // --- achievements ---
 const toast = (text: string) => {
@@ -22,7 +22,7 @@ const toast = (text: string) => {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 };
-const setAchLabel = () => { $('ach').innerHTML = `<span class="long">Achievements</span><span class="short">Ach.</span> ${s.achievements.length}/${ACHIEVEMENTS.length}`; };
+const setAchLabel = () => { $('ach').innerHTML = `<span class="long">Achievements</span><span class="short"><span class="item sprite" style="background-position:-256px 0"></span></span> ${s.achievements.length}/${ACHIEVEMENTS.length}`; };
 const renderAchievements = () => {
   $('ach-count').textContent = `${s.achievements.length}/${ACHIEVEMENTS.length}`;
   $('ach-list').innerHTML = ACHIEVEMENTS.map((a) => {
@@ -30,6 +30,7 @@ const renderAchievements = () => {
     return `<li class="${got ? '' : 'locked'}"><b>${a.name}</b>${got ? '' : ' (locked)'}<small>${a.desc}</small></li>`;
   }).join('');
 };
+document.querySelectorAll<HTMLElement>('[data-qv]').forEach((e) => { e.textContent = String(QUEUE[e.dataset.qv as keyof typeof QUEUE]); }); // Help text reads the same thresholds
 $('help').onclick = () => ($('helpdlg') as HTMLDialogElement).showModal();
 $('ach').onclick = () => { renderAchievements(); ($('achievements') as HTMLDialogElement).showModal(); };
 
@@ -172,7 +173,7 @@ function gain(id: StationId, n: number) {
 let rate = 0, lastEarned = s.bread * 10, lastRateAt = performance.now(), lastBread = s.bread, lastCoinSfx = 0;
 function render() {
   setText(ui.coins, fmt(s.coins));
-  setText(ui.income, `+${rate.toFixed(1)} / sec`);
+  setText(ui.income, `+${rate >= 1000 ? fmt(rate) : rate.toFixed(1)} / sec`);
   const cost = slimeCost(s);
   ui.buy.disabled = s.coins < cost;
   setText(ui.buyCost, `${fmt(cost)} coins`);
@@ -182,9 +183,9 @@ function render() {
 
   for (const id of STATIONS) {
     const list = by[id], n = list.length, st = s.stations[id], u = ui.st[id], stock = Math.floor(st.stock);
-    const starved = id !== 'farm' && n > 0 && st.stock < 2;
-    const backed = id !== 'farm' && st.stock > 20;
-    const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= 50 ? 'jam' : st.stock >= 20 ? 'warn' : st.stock >= 10 ? 'busy' : n === 0 && st.stock >= 2 ? 'warn' : 'ok';
+    const starved = id !== 'farm' && n > 0 && st.stock < QUEUE.starved;
+    const backed = id !== 'farm' && st.stock >= QUEUE.backed;
+    const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= QUEUE.jam ? 'jam' : st.stock >= QUEUE.backed ? 'warn' : st.stock >= QUEUE.busy ? 'busy' : n === 0 && st.stock >= QUEUE.starved ? 'warn' : 'ok';
     const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
     setText(u.n, String(n));
     setText(u.lv, String(st.level));
@@ -203,8 +204,8 @@ function render() {
     setHtml(`actors-${id}`, keyOf(list, anim, backed), crowd(list, anim, starved, backed)); // backed up = swamped: sweating
   }
   // blades turn and the oven glows only while the station has input to work on
-  ui.windmill.classList.toggle('working', s.stations.mill.stock >= 2 && by.mill.length > 0);
-  ui.oven.classList.toggle('baking', s.stations.bakery.stock >= 2 && by.bakery.length > 0);
+  ui.windmill.classList.toggle('working', s.stations.mill.stock >= QUEUE.starved && by.mill.length > 0);
+  ui.oven.classList.toggle('baking', s.stations.bakery.stock >= QUEUE.starved && by.bakery.length > 0);
 
   for (const id of STATIONS) { // popups for finished cycles
     const made = s.stations[id].made ?? 0;

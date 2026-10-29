@@ -1,4 +1,4 @@
-import { count, STATIONS, speedMultiplier, type State, type StationId } from './sim';
+import { count, QUEUE, STATIONS, speedMultiplier, type State, type StationId } from './sim';
 
 export interface Achievement { id: string; name: string; desc: string; test: (s: State) => boolean }
 
@@ -28,8 +28,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'level_50', name: 'Master Craftsman', desc: 'Get a station to level 50 (another x2)', test: (s) => Math.max(...levels(s)) >= 50 },
   { id: 'all_level_10', name: 'Fully Upgraded', desc: 'Get all three stations to level 10', test: (s) => Math.min(...levels(s)) >= 10 },
   { id: 'turbo', name: 'Turbo', desc: 'Run any station at 5x speed or more (level 15)', test: (s) => STATIONS.some((i: StationId) => speedMultiplier(s.stations[i].level) >= 5) },
-  { id: 'backed_up', name: 'Traffic Jam', desc: 'Let the Mill or Bakery queue back up to 50', test: (s) => queue(s) >= 50 },
-  { id: 'gridlock', name: 'Gridlock', desc: 'Let the Mill or Bakery queue back up to 200', test: (s) => queue(s) >= 200 },
+  { id: 'backed_up', name: 'Traffic Jam', desc: `Let the Mill or Bakery queue back up to ${QUEUE.backed}`, test: (s) => queue(s) >= QUEUE.backed },
+  { id: 'gridlock', name: 'Gridlock', desc: `Let the Mill or Bakery queue jam at ${QUEUE.jam}`, test: (s) => queue(s) >= QUEUE.jam },
   held(1000, 'coins_1000', 'Thousandaire'), held(10000, 'coins_10000', 'Ten Grand'), held(100000, 'coins_100000', 'Fat Cat'),
 ];
 
