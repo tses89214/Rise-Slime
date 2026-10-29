@@ -218,12 +218,59 @@ sheet(items_row, 16, 16).save(OUT / "items.png")
 # ---------- props (32x32) ----------
 
 
-def prop_millstone():
+def prop_windmill():
+    """Tower + red roof; the blades are a separate prop so they can turn."""
     img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.ellipse([2, 4, 29, 31], fill=hx("#B8B2A7"), outline=hx(INK))
-    d.ellipse([3, 5, 28, 30], outline=hx("#9C958A"))
-    d.ellipse([12, 14, 19, 21], fill=hx("#7E776B"), outline=hx(INK))
+    d.polygon([(9, 14), (23, 14), (27, 31), (5, 31)], fill=hx("#F3E3C3"), outline=hx(INK))
+    d.polygon([(6, 14), (26, 14), (16, 6)], fill=hx("#E2604A"), outline=hx(INK))
+    d.rectangle([13, 22, 19, 31], fill=hx("#8A5A3B"), outline=hx(INK))
+    d.rectangle([14, 17, 18, 20], fill=hx("#BFE3FF"), outline=hx(INK))
+    return img
+
+
+def prop_blades(angle):
+    """Four sails on a cross, drawn with the hub at the sprite centre. angle 0 = '+', 45 = 'x'."""
+    import math
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = 15.5
+    for k in range(4):
+        a = math.radians(angle + 90 * k)
+        dx, dy = math.cos(a), math.sin(a)
+        px, py = -dy, dx
+        pt = lambda t, o: (c + dx * t + px * o, c + dy * t + py * o)
+        d.polygon([pt(5, 1), pt(15, 1), pt(15, 5), pt(5, 5)], fill=hx("#FFFFFF"), outline=hx(INK))
+        d.line([pt(0, 0), pt(15, 0)], fill=hx("#8A5A3B"), width=2)
+    d.ellipse([13, 13, 18, 18], fill=hx("#8A5A3B"), outline=hx(INK))
+    return img
+
+
+def prop_wheat_pile():
+    """Golden heap of wheat: the mill's input queue."""
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.polygon([(1, 31), (4, 19), (10, 11), (16, 8), (22, 11), (28, 19), (31, 31)], fill=hx("#E9B949"), outline=hx(INK))
+    for x in range(5, 28, 4):
+        d.line([(x, 30), (x + 3, 17)], fill=hx("#C98A12"))
+    for x, y in ((9, 13), (15, 9), (21, 13), (13, 6), (19, 6)):  # ears sticking out
+        d.rectangle([x, y, x + 1, y + 3], fill=hx("#F7D774"), outline=hx("#C98A12"))
+    return img
+
+
+def prop_flour_sack():
+    """Cloth sack with a tied neck and an F: the mill's output, the bakery's input."""
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.polygon([(6, 13), (26, 13), (29, 22), (27, 31), (5, 31), (3, 22)], fill=hx("#F4EFE6"), outline=hx(INK))
+    d.polygon([(24, 15), (27, 22), (25, 30), (22, 30), (24, 22)], fill=hx("#D8CFBE"))
+    d.polygon([(11, 13), (21, 13), (20, 8), (12, 8)], fill=hx("#F4EFE6"), outline=hx(INK))
+    d.rectangle([10, 5, 21, 8], fill=hx("#F4EFE6"), outline=hx(INK))  # gathered cloth above the tie
+    d.rectangle([11, 12, 20, 13], fill=hx("#8A5A3B"))  # rope
+    f = hx("#E2604A")
+    d.rectangle([12, 18, 13, 27], fill=f)  # the F
+    d.rectangle([12, 18, 19, 19], fill=f)
+    d.rectangle([12, 22, 17, 23], fill=f)
     return img
 
 
@@ -240,15 +287,6 @@ def prop_oven(lit):
     return img
 
 
-def prop_sacks():
-    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    for (x0, y0, x1, y1) in ((1, 16, 14, 31), (17, 16, 30, 31), (9, 3, 22, 18)):
-        d.rectangle([x0, y0, x1, y1], fill=hx("#E3C48D"), outline=hx(INK))
-        d.rectangle([x0 + 4, y0, x1 - 4, y0 + 2], fill=hx("#C9A870"))
-    return img
-
-
 def prop_cloud():
     img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -260,12 +298,14 @@ def prop_cloud():
     return img
 
 
-PROPS = {"millstone": prop_millstone(), "oven": prop_oven(False), "oven_lit": prop_oven(True),
-         "sacks": prop_sacks(), "cloud": prop_cloud()}
+PROPS = {"windmill": prop_windmill(), "blades_plus": prop_blades(0), "blades_x": prop_blades(45),
+         "oven": prop_oven(False), "oven_lit": prop_oven(True), "wheat_pile": prop_wheat_pile(),
+         "flour_sack": prop_flour_sack(), "cloud": prop_cloud()}
 props_row = [list(PROPS.values())]
 sheet(props_row, 32, 32).save(OUT / "props.png")
 pmeta = atlas("props", props_row, [""], list(PROPS), 32, 32,
-              {"oven_baking": {"frames": ["oven", "oven_lit"], "fps": 2, "repeat": -1}})
+              {"oven_baking": {"frames": ["oven", "oven_lit"], "fps": 2, "repeat": -1},
+               "blades_turn": {"frames": ["blades_plus", "blades_x"], "fps": 2, "repeat": -1}})
 (OUT / "props.json").write_text(json.dumps(pmeta, indent=2))
 
 # ---------- shop front (64x48) ----------
@@ -278,6 +318,10 @@ for i in range(8):
 d.rectangle([0, 2, 63, 11], outline=hx(INK))
 d.rectangle([7, 18, 26, 32], fill=hx("#BFE3FF"), outline=hx(INK))
 d.line([16, 18, 16, 32], fill=hx(INK))
+d.rectangle([8, 30, 25, 31], fill=hx("#8A5A3B"))  # shelf
+for x in (9, 15, 21):  # loaves on display
+    d.ellipse([x, 24, x + 6, 30], fill=hx("#D9923B"), outline=hx(INK))
+    d.point((x + 2, 26), fill=hx("#F7D774"))
 d.rectangle([38, 22, 53, 47], fill=hx("#8A5A3B"), outline=hx(INK))
 d.point((50, 35), fill=hx("#F5C342"))
 shop.save(OUT / "shop.png")

@@ -6,7 +6,7 @@ const NAME: Record<StationId, string> = { farm: 'FARM', mill: 'MILL', bakery: 'B
 const OUT: Record<StationId, string> = { farm: 'wheat', mill: 'flour', bakery: 'bread' };
 const IN: Record<StationId, string> = { farm: '', mill: 'wheat', bakery: 'flour' };
 const SECONDS = { farm: 1, mill: 3, bakery: 5 };
-const MAX_DRAWN = 8; // per zone; the rest shows as "+N"
+const MAX_DRAWN = 10; // per zone: 5 per row, 2 rows; the rest shows as "+N"
 const $ = (id: string) => document.getElementById(id)!;
 const store = {
   get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -61,6 +61,16 @@ try {
   }
 } catch { /* corrupt save: start fresh */ }
 
+// dev only (stripped from builds): ?demo=farm,mill,bakery,lounge seeds a state for screenshots, e.g. ?demo=12,3,6,2
+const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null;
+if (demo) {
+  const [f, m, b, l] = demo.split(',').map(Number);
+  s = newState({ farm: f, mill: m, bakery: b });
+  s.coins = 1e6;
+  for (let i = 0; i < l; i++) buySlime(s);
+  s.coins = 20;
+}
+
 const t0 = Date.now();
 emit?.('session_start', t0, { offline_seconds: offlineSeconds, is_new_player: isNew });
 if (offlineSeconds && offlineSeconds > 5) {
@@ -76,11 +86,10 @@ const item = (i: number, extra = '') => `<span class="item sprite ${extra}" styl
 const zone = (id: StationId, props: string, extra = '') =>
   `<div class="zone"><div class="label">${NAME[id]}</div><div class="props">${props}</div>${extra}<div class="actors" id="actors-${id}"></div></div>`;
 $('scene').innerHTML =
-  '<div class="ground"></div>' +
   '<div class="cloud" style="top:18px"></div><div class="cloud" style="top:56px;animation-delay:-30s"></div>' +
   zone('farm', Array.from({ length: 5 }, (_, i) => item(0, 'wheat').replace('class="', `style="animation-delay:-${i * 0.25}s" class="`)).join('')) +
-  zone('mill', '<div id="sacks" style="display:flex"></div><div class="prop sprite millstone" style="background-position:0 0"></div>') +
-  zone('bakery', '<div class="prop sprite" id="oven"></div>') +
+  zone('mill', '<div id="wheat-pile" style="display:flex"></div><div class="windmill" id="windmill"><span class="prop sprite p-windmill"></span><span class="prop sprite blades"></span></div>') +
+  zone('bakery', '<span class="prop sprite p-oven" id="oven"></span><div id="flours" style="display:flex"></div>') +
   `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${[0, 1, 2].map((i) => `<div class="cust sprite" style="--row:${i};animation-delay:0s,-${i * 3}s"></div>`).join('')}<div id="shop-fx"></div></div>`;
 for (const c of document.querySelectorAll<HTMLElement>('.cust')) {
   c.addEventListener('animationiteration', (e) => { if ((e as AnimationEvent).animationName === 'approach') c.style.setProperty('--row', String(Math.floor(Math.random() * 4))); }); // random colour per visit; UI-only randomness
@@ -135,9 +144,10 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 // --- render ---
 const keys = new Map<string, string>();
 const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !== key) { keys.set(id, key); $(id).innerHTML = html; } };
-const colourRow = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 5; // stable per slime
+// colour follows the job: lounge blue, farm green (leafy), mill brown (rocky), bakery red (fiery); cosmetic in M1
+const ROW: Record<string, number> = { lounge: 0, farm: 1, mill: 2, bakery: 3 };
 const slimeEl = (sl: Slime, anim: string, i: number, zzz = false) =>
-  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${colourRow(sl.id)};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
+  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
 const crowd = (list: Slime[], anim: string, zzz = false) =>
   list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
 const here = (where: StationId | null) => s.slimes.filter((x) => x.station === where);
@@ -173,12 +183,13 @@ function render() {
     const list = here(id);
     setHtml(`actors-${id}`, keyOf(list, anim), crowd(list, anim, starved));
   }
-  // props that reflect production state
-  const mill = s.stations.mill.stock;
-  const sacks = mill < 10 ? 1 : mill < 30 ? 2 : 3; // never 0: a vanishing prop flickers
-  setHtml('sacks', `${sacks}`, '<span class="prop sprite" style="background-position:-288px 0"></span>'.repeat(sacks));
-  $('oven').className = `prop sprite${s.stations.bakery.stock >= 2 && count(s, 'bakery') > 0 ? ' oven-baking' : ''}`;
-  $('oven').style.backgroundPositionX = '-96px';
+  // props that reflect production state: wheat heap = mill queue, flour sacks = bakery queue, blades/oven animate while working
+  const pile = (stock: number) => (stock < 20 ? 1 : 2); // 1-2 only (they overlap) so the props stay inside their zone; never 0, a vanishing prop flickers
+  const heap = pile(s.stations.mill.stock), sacks = pile(s.stations.bakery.stock);
+  setHtml('wheat-pile', `${heap}`, '<span class="prop sprite p-wheat"></span>'.repeat(heap));
+  setHtml('flours', `${sacks}`, '<span class="prop sprite p-flour"></span>'.repeat(sacks));
+  $('windmill').classList.toggle('working', s.stations.mill.stock >= 2 && count(s, 'mill') > 0);
+  $('oven').classList.toggle('baking', s.stations.bakery.stock >= 2 && count(s, 'bakery') > 0);
 
   if (s.bread > lastBread) { // sale feedback: floating "+10" and a coin sound
     const fx = document.createElement('div');

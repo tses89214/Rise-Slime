@@ -13,7 +13,7 @@
     --sky:#BFE3FF; --grass:#8EDB9A; --grass-line:#4FAF6A; --bar:#6FA8FF; --warn:#F08A24; --warn-line:#D9661A;
   }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.2 m5x7,monospace; image-rendering:pixelated; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:32px/1.1 m5x7,monospace; image-rendering:pixelated; }
   img, .spr { image-rendering:pixelated; }
   h1, h2, .title { font-family:kenpixel,m5x7,monospace; margin:0; }
   .num { font-family:monogram,monospace; }
@@ -21,79 +21,88 @@
   .box { background:var(--panel); border:4px solid var(--ink); box-shadow:4px 4px 0 var(--ink); }
 
   /* buttons: primary = pink, 3px frame, press = shadow gone + 4px down */
-  button { font:inherit; font-size:16px; color:var(--ink); background:var(--bg); border:3px solid var(--ink); min-height:44px; padding:6px 14px; cursor:pointer; }
+  button { font:inherit; font-size:32px; color:var(--ink); background:var(--bg); border:3px solid var(--ink); min-height:48px; padding:4px 14px; cursor:pointer; }
   button.primary { background:var(--primary); border-width:4px; box-shadow:4px 4px 0 var(--ink); font-size:32px; }
   button.primary:active:not(:disabled) { box-shadow:0 0 0 var(--ink); transform:translate(4px,4px); }
   button:disabled { opacity:.45; cursor:not-allowed; }
 
   header { display:flex; align-items:center; flex-wrap:wrap; gap:16px 24px; padding:10px 18px; }
-  header h1 { font-size:32px; letter-spacing:1px; }
+  header h1 { font-size:40px; letter-spacing:1px; }
   .coin { display:flex; align-items:center; gap:8px; }
-  #coins { font-size:32px; }
-  #income { background:var(--income); border:3px solid var(--ink); padding:4px 12px; font-size:16px; }
+  #coins { font-size:48px; }
+  #income { background:var(--income); border:3px solid var(--ink); padding:2px 12px; font-size:32px; }
   .spacer { margin-left:auto; display:flex; gap:10px; }
 
-  /* sprites: slimes.png 144x80 (9x5 of 16px), shown x3; items/props/customers/shop scaled by integers too */
+  /* pixel art is sized in --u (an integer number of px per art pixel): 3 on desktop, 2 on small screens; never fractional */
+  :root { --u:3px; --i:2px; }
+  @media (max-width:1099px) { :root { --u:2px; } }
   .sprite { background-repeat:no-repeat; flex:none; }
+  .slime { --w:calc(16*var(--u)); width:var(--w); height:var(--w); margin:calc(-3*var(--u)) 0; background-image:url(/original/slimes.png); background-size:calc(144*var(--u)) calc(80*var(--u)); background-position-y:calc(var(--row,0) * -16 * var(--u)); }
   .slime, .sleeper { display:inline-block; }
-  .slime { width:48px; height:48px; background-image:url(/original/slimes.png); background-size:432px 240px; background-position-y:calc(var(--row,0) * -48px); }
   .a-idle { animation:idle 1s step-end infinite; }
   .a-hop { animation:hop .5s step-end infinite; }
   .a-sleep { animation:sleep 1.33s step-end infinite; }
   .a-spin { animation:spin .67s step-end infinite; }
-  @keyframes idle { 0%{background-position-x:0} 75%{background-position-x:-48px} }
-  @keyframes hop { 0%{background-position-x:-96px} 20%{background-position-x:-144px} 40%{background-position-x:-192px} 60%{background-position-x:-144px} 80%{background-position-x:0} }
-  @keyframes sleep { 0%{background-position-x:-240px} 50%{background-position-x:-288px} }
-  @keyframes spin { 0%{background-position-x:-336px} 25%{background-position-x:0} 50%{background-position-x:-384px} 75%{background-position-x:0} }
-  .item { width:32px; height:32px; background-image:url(/original/items.png); background-size:160px 32px; }
-  .prop { width:96px; height:96px; background-image:url(/original/props.png); background-size:480px 96px; }
+  @keyframes idle { 0%{background-position-x:0} 75%{background-position-x:calc(-16*var(--u))} }
+  @keyframes hop { 0%{background-position-x:calc(-32*var(--u))} 20%{background-position-x:calc(-48*var(--u))} 40%{background-position-x:calc(-64*var(--u))} 60%{background-position-x:calc(-48*var(--u))} 80%{background-position-x:0} }
+  @keyframes sleep { 0%{background-position-x:calc(-80*var(--u))} 50%{background-position-x:calc(-96*var(--u))} }
+  @keyframes spin { 0%{background-position-x:calc(-112*var(--u))} 25%{background-position-x:0} 50%{background-position-x:calc(-128*var(--u))} 75%{background-position-x:0} }
+  .item { width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(/original/items.png); background-size:calc(80*var(--i)) calc(16*var(--i)); }
+  /* props.png frames (32px): 0 windmill, 1 blades+, 2 blades x, 3 oven, 4 oven lit, 5 wheat pile, 6 flour sack, 7 cloud */
+  .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(/original/props.png); background-size:calc(256*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
+  #wheat-pile > .prop + .prop, #flours > .prop + .prop { margin-left:calc(-12*var(--u)); }
+  .p-windmill { --f:0; } .p-oven { --f:3; } .p-wheat { --f:5; } .p-flour { --f:6; }
+  .p-oven.baking { animation:oven 1s step-end infinite; }
+  @keyframes oven { 0%{background-position-x:calc(-96*var(--u))} 50%{background-position-x:calc(-128*var(--u))} }
 
-  #scene { position:relative; height:330px; overflow:hidden; background:var(--sky) var(--sky-tile) 0 0/32px 32px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
-  #scene .ground { position:absolute; inset:auto 0 0 0; height:110px; background:var(--grass) var(--grass-tile) 0 0/32px 32px; }
-  #scene .ground::before { content:""; position:absolute; inset:0 0 auto 0; height:32px; background:var(--grass-top-tile) 0 0/32px 32px repeat-x; }
-  .cloud { position:absolute; width:64px; height:64px; background:url(/original/props.png) -256px 0/320px 64px; animation:drift 60s linear infinite; }
+  #scene { position:relative; overflow:hidden; background:var(--sky) var(--sky-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)); display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+  @media (max-width:759px) { #scene { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .cloud { position:absolute; width:calc(32*var(--i)); height:calc(32*var(--i)); background:url(/original/props.png) calc(-7*32*var(--i)) 0/calc(256*var(--i)) calc(32*var(--i)); animation:drift 60s linear infinite; }
   @keyframes drift { from{transform:translateX(-80px)} to{transform:translateX(1400px)} }
-  .zone { position:relative; display:flex; flex-direction:column; align-items:center; padding-top:14px; }
-  .zone + .zone::before { content:""; position:absolute; left:-16px; bottom:78px; width:32px; height:32px; background:var(--fence-tile) 0 0/32px 32px; }
-  .zone .label { background:var(--panel); border:3px solid var(--ink); padding:2px 10px; font-size:16px; font-family:kenpixel,monospace; z-index:2; }
-  .zone .actors { position:absolute; bottom:24px; display:flex; gap:0; align-items:flex-end; flex-wrap:wrap; justify-content:center; max-width:100%; z-index:1; }
-  .zone .actors .more { font:16px monogram,monospace; background:var(--panel); border:3px solid var(--ink); padding:0 6px; align-self:center; }
+  .zone { position:relative; height:calc(110*var(--u)); display:flex; flex-direction:column; align-items:center; padding-top:10px; }
+  .zone::after { content:""; position:absolute; inset:auto 0 0 0; height:calc(36*var(--u)); z-index:0;
+    background:var(--grass-top-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)) repeat-x, var(--grass-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)), var(--grass); }
+  .zone + .zone::before { content:""; position:absolute; left:calc(-8*var(--u)); bottom:calc(26*var(--u)); width:calc(16*var(--u)); height:calc(16*var(--u)); background:var(--fence-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)); z-index:1; }
+  .zone .label { background:var(--panel); border:3px solid var(--ink); padding:0 10px; font-size:24px; font-family:kenpixel,monospace; z-index:3; }
+  .zone .actors { position:absolute; bottom:calc(4*var(--u)); width:calc(80*var(--u)); display:flex; flex-wrap:wrap; justify-content:center; z-index:2; }
+  .zone .actors .more { position:absolute; right:0; top:calc(-6*var(--u)); font:32px monogram,monospace; background:var(--panel); border:3px solid var(--ink); padding:0 6px; }
   .sleeper { position:relative; }
-  .zzz { position:absolute; left:20px; top:-10px; animation:float 2.4s linear infinite; }
+  .zzz { position:absolute; left:calc(8*var(--u)); top:calc(-2*var(--u)); animation:float 2.4s linear infinite; }
   @keyframes float { 0%{opacity:0;transform:translateY(0)} 40%{opacity:1} 100%{opacity:0;transform:translateY(-16px)} }
-  .props { position:absolute; bottom:86px; display:flex; align-items:flex-end; gap:8px; z-index:0; }
+  .props { position:absolute; bottom:calc(28*var(--u)); display:flex; align-items:flex-end; gap:calc(4*var(--u)); z-index:1; }
   .wheat { animation:pop 1.2s steps(3) infinite; }
   @keyframes pop { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-  .millstone { animation:turn 4s steps(4) infinite; }
-  @keyframes turn { to { transform:rotate(360deg); } } /* 90deg steps only: other angles resample the pixels and shimmer */
-  .oven-baking { animation:oven 1s step-end infinite; }
-  @keyframes oven { 0%{background-position-x:-96px} 50%{background-position-x:-192px} }
-  .shop-img { width:192px; height:144px; background:url(/original/shop.png) 0 0/192px 144px; position:absolute; bottom:86px; right:0; }
-  .cust { position:absolute; bottom:70px; left:100%; width:48px; height:48px; background:url(/original/customers.png) 0 calc(var(--row,0) * -48px)/96px 192px; animation:step .5s step-end infinite, approach 9s linear infinite; z-index:1; }
-  @keyframes step { 0%{background-position-x:0} 50%{background-position-x:-48px} }
+  .windmill { position:relative; width:calc(32*var(--u)); height:calc(32*var(--u)); }
+  .windmill .prop { position:absolute; left:0; top:0; }
+  .windmill .blades { --f:1; top:calc(-5*var(--u)); }
+  .windmill.working .blades { animation:blades 1s step-end infinite; } /* two frames (+ then x): no pixel rotation, no shimmer */
+  @keyframes blades { 0%{background-position-x:calc(-32*var(--u))} 50%{background-position-x:calc(-64*var(--u))} }
+  .shop-img { width:calc(64*var(--u)); height:calc(48*var(--u)); background:url(/original/shop.png) 0 0/calc(64*var(--u)) calc(48*var(--u)); position:absolute; bottom:calc(28*var(--u)); right:0; z-index:1; }
+  .cust { position:absolute; bottom:calc(22*var(--u)); left:100%; width:calc(16*var(--u)); height:calc(16*var(--u)); background:url(/original/customers.png) 0 calc(var(--row,0) * -16 * var(--u))/calc(32*var(--u)) calc(64*var(--u)); animation:step .5s step-end infinite, approach 9s linear infinite; z-index:2; }
+  @keyframes step { 0%{background-position-x:0} 50%{background-position-x:calc(-16*var(--u))} }
   @keyframes approach { 0%{left:100%;opacity:1} 80%{left:64%;opacity:1} 81%,100%{left:64%;opacity:0} }
-  .float { position:absolute; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; z-index:3; display:flex; align-items:center; }
+  .float { position:absolute; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; z-index:4; display:flex; align-items:center; }
   @keyframes rise { from{transform:translateY(0);opacity:1} to{transform:translateY(-48px);opacity:0} }
 
   #stations { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
   .card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
   .card.warn { border-color:var(--warn-line); }
-  .card .top { display:flex; justify-content:space-between; align-items:baseline; }
-  .card h2 { font-size:32px; }
+  .card .top { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0 12px; }
+  .card h2 { font-size:40px; }
   .card .row { display:flex; justify-content:space-between; color:var(--ink2); }
   .bar { height:14px; background:#E1E5F7; border:3px solid var(--ink); }
   .bar i { display:block; height:100%; background:var(--bar); }
   .card.warn .bar i { background:var(--warn); }
   .card .btns { display:flex; gap:8px; margin-top:4px; }
-  .card .btns button { width:48px; padding:0; font-size:32px; }
-  .card .btns .primary { flex:1; width:auto; font-size:16px; border-width:3px; box-shadow:none; }
+  .card .btns button { width:48px; padding:0; font-size:40px; }
+  .card .btns .primary { flex:1; width:auto; font-size:32px; border-width:3px; box-shadow:none; }
 
   #bottom { display:flex; gap:16px; flex-wrap:wrap; }
   #lounge { flex:1; min-width:260px; padding:10px 16px; display:flex; align-items:center; gap:20px; }
   #lounge .slimes { margin-left:auto; display:flex; align-items:flex-end; }
   #buy { width:300px; max-width:100%; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:kenpixel,monospace; }
-  #buy small { font:16px m5x7,monospace; }
-  dialog { border:4px solid var(--ink); background:var(--panel); color:var(--ink); max-width:560px; font-size:16px; line-height:1.4; }
+  #buy small { font:32px m5x7,monospace; }
+  dialog { border:4px solid var(--ink); background:var(--panel); color:var(--ink); max-width:560px; font-size:32px; line-height:1.2; }
   dialog::backdrop { background:rgba(31,37,71,.5); }
 </style>
 </head>
@@ -108,7 +117,7 @@
   <section id="scene" class="box" aria-label="Bakery scene"></section>
   <section id="stations"></section>
   <section id="bottom">
-    <div id="lounge" class="box"><div><h2 style="font-size:32px">LOUNGE</h2><div style="color:var(--ink2)">New slimes wait here. Tap + on a station to assign.</div></div><div class="slimes" id="lounge-slimes"></div></div>
+    <div id="lounge" class="box"><div><h2 style="font-size:40px">LOUNGE</h2><div style="color:var(--ink2)">New slimes wait here. Tap + on a station to assign.</div></div><div class="slimes" id="lounge-slimes"></div></div>
     <button id="buy" class="primary"><span>BUY SLIME</span><small id="buy-cost"></small></button>
   </section>
 </main>

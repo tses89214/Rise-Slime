@@ -3,32 +3,50 @@
   "frameWidth": 32,
   "frameHeight": 32,
   "frames": {
-    "millstone": {
+    "windmill": {
       "x": 0,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "oven": {
+    "blades_plus": {
       "x": 32,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "oven_lit": {
+    "blades_x": {
       "x": 64,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "sacks": {
+    "oven": {
       "x": 96,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "cloud": {
+    "oven_lit": {
       "x": 128,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "wheat_pile": {
+      "x": 160,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "flour_sack": {
+      "x": 192,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "cloud": {
+      "x": 224,
       "y": 0,
       "w": 32,
       "h": 32
@@ -39,6 +57,14 @@
       "frames": [
         "oven",
         "oven_lit"
+      ],
+      "fps": 2,
+      "repeat": -1
+    },
+    "blades_turn": {
+      "frames": [
+        "blades_plus",
+        "blades_x"
       ],
       "fps": 2,
       "repeat": -1
