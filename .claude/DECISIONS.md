@@ -7,3 +7,4 @@ Game/spec decisions live in `docs/decisions/`. This file holds the infrastructur
 - **Kafka listener labels** are ours to name: `WEB_GAME` (:9092, clients on the host: collector, bots), `DOCKER` (:29092, other containers: Kafka UI, later Flink), `CONTROLLER` (:9093, internal). Protocol side of the map stays `PLAINTEXT`.
 - **Second Kafka node is broker-only** (node 1 is the only controller): demo of roles and replication, not HA. Real HA needs 3 controllers.
 - **`KAFKA_LOG_DIRS=/var/lib/kafka/data`**: the apache/kafka image defaults to `/tmp`, so a volume on the data path alone persisted nothing.
+- **CLAUDE.md dev rules: dropped "ask rather than guess" and token budgets.** Owner wants small details decided autonomously; budgets are unworkable for multi-step sessions.

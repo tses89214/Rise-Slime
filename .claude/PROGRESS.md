@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-29_
+_Last updated: 2026-10-29 (clocked out)_
 
 ## Status
 M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated, data in volumes) -> Kafka UI.
