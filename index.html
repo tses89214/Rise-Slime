@@ -97,6 +97,7 @@
   /* swamped slimes (queue backing up) sweat */
   .sweat { position:absolute; top:calc(-4*var(--u)); pointer-events:none; animation:drip .9s linear infinite; opacity:0; }
   @keyframes drip { 0% { opacity:0; transform:translateY(-4px); } 25% { opacity:1; } 100% { opacity:0; transform:translateY(14px); } }
+  .take { position:absolute; z-index:3; pointer-events:none; }
   .float { position:absolute; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; z-index:4; display:flex; align-items:center; }
   @keyframes rise { from{transform:translateY(0);opacity:1} to{transform:translateY(-48px);opacity:0} }
 
@@ -120,7 +121,7 @@
   #buy small { font:32px m5x7,monospace; }
   #toast { position:fixed; right:16px; bottom:16px; z-index:10; padding:8px 16px; background:var(--primary); border:4px solid var(--ink); box-shadow:4px 4px 0 var(--ink); transform:translateY(200%); transition:transform .25s steps(4); }
   #toast.show { transform:none; }
-  #ach-list { list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  #ach-list { max-height:60vh; overflow:auto; list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:6px; }
   #ach-list li { border:3px solid var(--ink); padding:4px 10px; background:var(--income); }
   #ach-list li.locked { background:#E1E5F7; color:var(--ink2); }
   #ach-list small { display:block; font-size:24px; }

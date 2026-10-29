@@ -25,7 +25,7 @@ function pump() {
   }
 }
 
-async function send(e: GameEvent) {
+function send(e: GameEvent) {
   const copies = noise() < dup ? 2 : 1; // resend keeps the same event_id
   const body = noise() < bad ? { ...e, event_type: 'nonsense' } : e;
   for (let i = 0; i < copies; i++) {

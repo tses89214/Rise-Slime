@@ -1,6 +1,9 @@
 import { ACHIEVEMENTS, checkAchievements } from '../core/achievements';
-import { type Slime, applyOffline, assignOne, buySlime, count, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
-import { makeEmitter } from '../events/emitter';
+import { type Slime, applyOffline, assignOne, buySlime, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
+import { initAudio, sfx } from './audio';
+import { sale, startCustomers } from './customers';
+import { emit } from './telemetry';
+import { $, store } from './util';
 
 const SAVE_KEY = 'rise-slime-save';
 const NAME: Record<StationId, string> = { farm: 'FARM', mill: 'MILL', bakery: 'BAKERY' };
@@ -9,44 +12,6 @@ const IN: Record<StationId, string> = { farm: '', mill: 'wheat', bakery: 'flour'
 const SECONDS = { farm: 1, mill: 3, bakery: 5 };
 const CUSTOMERS = 7;
 const MAX_DRAWN = 10; // per zone: 5 per row, 2 rows; the rest shows as "+N"
-const $ = (id: string) => document.getElementById(id)!;
-const store = {
-  get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
-  set: (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
-};
-
-// --- telemetry: compiled out entirely when VITE_TELEMETRY !== 'true' (itch.io build) ---
-let emit: ReturnType<typeof makeEmitter> | null = null;
-if (import.meta.env.VITE_TELEMETRY === 'true') {
-  const url = import.meta.env.VITE_COLLECTOR_URL ?? 'http://localhost:3000/events';
-  const pid = store.get('rise-slime-pid') ?? `player-${crypto.randomUUID().slice(0, 8)}`;
-  store.set('rise-slime-pid', pid);
-  emit = makeEmitter(
-    { game_version: '0.1.0', player_id: pid, session_id: `s-${crypto.randomUUID().slice(0, 4)}`, client: 'browser', bot_persona: null },
-    (e) => void fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(e), keepalive: true }).catch(() => {}),
-  );
-}
-
-// --- audio: browsers block autoplay, so music starts on first click; music and sfx toggles are remembered ---
-const on = { music: store.get('rise-slime-music') === 'on', sfx: store.get('rise-slime-sfx') !== 'off' };
-const sfx = (f: string) => { if (!on.sfx) return; const a = new Audio(`/audio/sfx/${f}`); a.volume = 0.4; void a.play().catch(() => {}); };
-const tracks = ['8-bit-concentration-loop.mp3', 'sometimes.ogg', 'cunning-plan.ogg'].map((f) => `/audio/music/${f}`);
-let track = 0;
-const music = new Audio(tracks[0]);
-music.volume = 0.25;
-music.onended = () => { music.src = tracks[++track % tracks.length]; void music.play().catch(() => {}); };
-const syncAudio = () => {
-  $('music').textContent = `Music: ${on.music ? 'on' : 'off'}`;
-  $('sfx').textContent = `SFX: ${on.sfx ? 'on' : 'off'}`;
-  store.set('rise-slime-music', on.music ? 'on' : 'off');
-  store.set('rise-slime-sfx', on.sfx ? 'on' : 'off');
-  if (on.music) void music.play().catch(() => {}); else music.pause();
-};
-$('music').onclick = () => { on.music = !on.music; syncAudio(); };
-$('sfx').onclick = () => { on.sfx = !on.sfx; syncAudio(); };
-$('settings').onclick = () => ($('credits') as HTMLDialogElement).showModal();
-addEventListener('click', () => { if (on.music && music.paused) void music.play().catch(() => {}); }, { once: true });
-document.addEventListener('click', (e) => { if ((e.target as Element).closest('button')) sfx('click_001.ogg'); });
 
 // --- achievements ---
 const toast = (text: string) => {
@@ -124,52 +89,7 @@ void tiles.decode().then(() => {
   });
 }).catch(() => {});
 
-// --- customers: wander the open ground by the shop. Every bread actually sold sends one of them in through the door; they come out hugging a loaf and leave, and a new one (new colour) arrives ---
-const shopZone = document.querySelectorAll<HTMLElement>('#scene .zone')[3];
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-const rnd = (a: number, b: number) => a + Math.random() * (b - a); // UI-only randomness; the core stays seeded
-let buyers = 0; // breads sold that no customer has walked in for yet (capped: at high sales rates customers just cycle)
-async function customer(c: HTMLElement) {
-  const u = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--u')) || 3; // px per art pixel
-  let x = 0;
-  const go = async (to: number, depth: number) => {
-    const dur = Math.max(0.2, Math.abs(to - x) / (12 * u())); // ~12 art px per second: a stroll
-    c.style.transitionDuration = `${dur}s`;
-    c.style.transform = `translate(${to}px,${-depth * u()}px)`;
-    x = to;
-    await sleep(dur * 1000);
-  };
-  const jump = (to: number) => { c.style.transitionDuration = '0s'; c.style.transform = `translate(${to}px,0)`; x = to; };
-  const W = () => shopZone.clientWidth;
-  await sleep(rnd(0, 4000)); // desynchronise
-  for (;;) {
-    jump(W() + 2 * u());
-    c.style.setProperty('--row', String(Math.floor(Math.random() * 4)));
-    await sleep(50);
-    let bought = false;
-    for (let stops = 0; stops < 6 && !bought; stops++) { // wander until a sale happens
-      c.dataset.s = 'walk';
-      await go(rnd(4 * u(), W() - 40 * u()), rnd(0, 14));
-      c.dataset.s = 'idle';
-      await sleep(rnd(700, 2200));
-      if (buyers > 0) { buyers--; bought = true; }
-    }
-    if (bought) {
-      c.dataset.s = 'walk';
-      await go(W() - 26 * u(), 0); // the door
-      c.dataset.s = 'hidden'; // inside, buying
-      await sleep(rnd(800, 1600));
-      c.dataset.s = 'carry';
-      await go(W() + 2 * u(), rnd(0, 6)); // out again with bread, away to the right
-    } else {
-      c.dataset.s = 'walk'; // nothing sold lately: stroll off empty-handed
-      await go(W() + 2 * u(), rnd(0, 6));
-    }
-    c.dataset.s = 'hidden';
-    await sleep(rnd(1000, 4000));
-  }
-}
-document.querySelectorAll<HTMLElement>('.cust').forEach((c) => void customer(c));
+startCustomers(document.querySelectorAll<HTMLElement>('#scene .zone')[3]);
 
 // --- cards ---
 $('stations').innerHTML = STATIONS.map((id) => `
@@ -284,7 +204,7 @@ function render() {
     lastMade[id] = made;
     if (pending[id] > 0 && performance.now() - lastPop[id] > 400) { gain(id, pending[id]); pending[id] = 0; lastPop[id] = performance.now(); }
   }
-  if (s.bread > lastBread) buyers = Math.min(6, buyers + (s.bread - lastBread)); // each sale sends a customer through the door
+  if (s.bread > lastBread) sale(s.bread - lastBread); // each sale sends a customer to pick up a loaf
   if (s.bread > lastBread && ui.shopFx.childElementCount < 6) { // sale feedback at the shop: floating "+10" and a coin sound
     const fx = document.createElement('div');
     fx.className = 'float';
@@ -320,5 +240,5 @@ setInterval(() => {
   if (!document.hidden) render(); // nothing to draw in a background tab; the sim above keeps running
 }, 100);
 setAchLabel();
-syncAudio();
+initAudio();
 addEventListener('pagehide', () => { emit?.('session_end', Date.now(), { session_seconds: (Date.now() - t0) / 1000, reason: 'closed' }); save(); });

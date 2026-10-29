@@ -31,8 +31,9 @@ export async function runBot(o: BotOpts) {
 
   function act(t: number) {
     const now = at(t);
-    // buy
-    if (o.persona !== 'optimizer' || slimeCost(s) <= Math.min(...STATIONS.map((i) => upgradeCost(s, i))) * 1.5) {
+    // the optimizer only buys slimes while they cost no more than 1.5x the cheapest upgrade; the others buy whenever they can
+    const cheapUpgrade = Math.min(...STATIONS.map((i) => upgradeCost(s, i)));
+    if (o.persona !== 'optimizer' || slimeCost(s) <= cheapUpgrade * 1.5) {
       const cost = slimeCost(s);
       const slime = buySlime(s);
       if (slime) emit('slime_purchased', now, { slime_id: slime.id, cost, total_purchased: s.totalPurchased, coins_after: s.coins });
