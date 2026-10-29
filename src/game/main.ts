@@ -116,7 +116,7 @@ function render() {
   }
   const zone = (label: string, id: StationId) => {
     const asleep = id !== 'farm' && s.stations[id].stock < (id === 'mill' ? 2 : 2);
-    return `<div class="zone"><small>${label}</small>${Array.from({ length: Math.min(8, count(s, id)) }, () => `<span class="slime${asleep ? ' asleep' : ''}"></span>`).join('')}${count(s, id) > 8 ? ` +${count(s, id) - 8}` : ''}${asleep && count(s, id) ? '<small>Zzz</small>' : ''}</div>`;
+    return `<div class="zone"><small>${label}</small>${Array.from({ length: Math.min(8, count(s, id)) }, () => `<span class="slime${asleep ? ' asleep' : ''}"></span>`).join('')}${count(s, id) > 8 ? ` +${count(s, id) - 8}` : ''}${asleep && count(s, id) ? '<small class="zzz">Zzz</small>' : ''}</div>`;
   };
   const html = zone('Farm', 'farm') + zone('Mill', 'mill') + zone('Bakery', 'bakery') + `<div class="zone shop"><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
   if (html !== lastScene) { lastScene = html; $('scene').innerHTML = html; }

@@ -17,8 +17,9 @@
   b, #coins, #income, .zone b { font-family:monogram,monospace; }
   #coins { font-size:40px; color:var(--gold); }
   #scene { margin:12px 0; padding:12px; background:#3f5a40 url(/assets/kenney-tiny-town/tile_0000.png) 0 0/64px 64px; image-rendering:pixelated; border:3px solid #223; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
-  .zone { min-height:64px; word-break:break-all; text-shadow:0 1px 0 #000,0 0 3px #000; }
+  .zone { position:relative; min-height:96px; word-break:break-all; text-shadow:0 1px 0 #000,0 0 3px #000; }
   .zone small { display:block; color:var(--dim); }
+  .zone small.zzz { position:absolute; top:4px; right:6px; display:inline; color:var(--ink); }
   .slime { display:inline-block; width:64px; height:64px; margin:-14px -10px; background:url(/assets/slimes/blue.png) 0 -128px; animation:idle .9s steps(9) infinite; }
   @keyframes idle { to { background-position:-576px -128px; } }
   .customer { position:absolute; bottom:4px; width:32px; height:32px; image-rendering:pixelated; animation:walk 9s linear infinite; }
