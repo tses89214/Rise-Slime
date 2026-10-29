@@ -14,7 +14,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - `scripts/demo.sh`: dev server + seeded demo state.
 
 ## Next
-1. Finish Flink SQL job + matching Kafka-engine tables ( -> `events`, per-minute aggregates incl. `ops_1m`, `events.dlq` -> `dead_letters`) in `pipeline/flink/`, add Flink + ClickHouse to compose.
+1. DLQ: `events.dlq` -> `dead_letters` (Flink or ClickHouse Kafka engine directly), then a live run (bots in real time) to check latency and the open last window.
 2. uPlot dashboard in `dashboard/`.
 
 ## Open / not verified
