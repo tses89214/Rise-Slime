@@ -20,6 +20,26 @@ CREATE TABLE IF NOT EXISTS slime.events (
     payload        String
 ) ENGINE = ReplacingMergeTree ORDER BY (event_type, event_time, event_id);
 
+-- Intake from Flink: this table stores nothing, it is a Kafka consumer. Reading it (the MV below does) advances the offset.
+-- Times arrive as ISO strings and are parsed in the MV, so Flink and ClickHouse never have to agree on a time format.
+CREATE TABLE IF NOT EXISTS slime.kafka_events (
+    event_type String, event_time String, event_id String, schema_version UInt8, game_version String,
+    player_id String, session_id String, client String, bot_persona Nullable(String), seq UInt32,
+    sent_at String, ingested_at Nullable(String), payload String
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.events',
+    kafka_group_name = 'clickhouse-events', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_events_mv TO slime.events AS
+SELECT
+    event_type,
+    parseDateTime64BestEffort(event_time, 3, 'UTC') AS event_time,
+    toUUID(event_id) AS event_id,
+    schema_version, game_version, player_id, session_id, client, bot_persona, seq,
+    parseDateTime64BestEffort(sent_at, 3, 'UTC') AS sent_at,
+    parseDateTime64BestEffortOrNull(ingested_at, 3, 'UTC') AS ingested_at,
+    payload
+FROM slime.kafka_events;
+
 -- production_tick summed over players, per station per minute. One row per finished window: plain MergeTree.
 CREATE TABLE IF NOT EXISTS slime.production_1m (
     window_start DateTime('UTC'),
