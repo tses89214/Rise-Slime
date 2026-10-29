@@ -56,6 +56,7 @@ npm test                         # vitest run
 npx vitest run -t "4:6:5"        # single test by name
 npm run typecheck
 npm run dev                      # browser game (telemetry off)
+scripts/demo.sh [farm,mill,bakery,lounge]   # dev server + open game with a seeded demo state
 VITE_TELEMETRY=true npm run dev  # browser game, events -> VITE_COLLECTOR_URL (default localhost:3000/events)
 npm run build                    # itch.io build: no event-sending code
 docker compose up -d             # single-node Kafka
