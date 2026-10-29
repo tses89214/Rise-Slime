@@ -9,9 +9,7 @@ Third-party files keep their original licenses (not MIT). Downloaded 2026-10-29;
 | m5x7 font: `assets/fonts/m5x7.ttf` | Daniel Linssen | https://managore.itch.io/m5x7 | CC0 |
 | monogram font: `assets/fonts/monogram.ttf` | Vinícius Menézio (datagoblin) | https://datagoblin.itch.io/monogram | CC0 |
 | Kenney Fonts: `assets/fonts/kenpixel.ttf` | Kenney | https://opengameart.org/content/kenney-fonts | CC0 |
-| 8 Bit Concentration Loop: `assets/audio/music/8-bit-concentration-loop.mp3` | cosmac | https://opengameart.org/node/174038 | CC0 |
-| Cunning plan: `assets/audio/music/cunning-plan.ogg` | congusbongus | https://opengameart.org/node/112060 | CC0 |
-| Chiptune Loops ("Sometimes"): `assets/audio/music/sometimes.ogg` | MatiasVME | https://opengameart.org/node/88716 | CC0 |
+| Good Morning (Caketunes): `assets/audio/music/good-morning.ogg` | Cakeflaps (You're Perfect Studio) | https://opengameart.org/content/good-morning | CC0 (page also offers CC-BY 4.0 / OGA-BY 3.0; CC0 used) |
 | Interface Sounds: `assets/audio/sfx/{click_001,confirmation_002,back_001}.ogg` | Kenney | https://opengameart.org/content/interface-sounds | CC0 |
 | 10 8bit coin sounds: `assets/audio/sfx/coin1.wav` | Luke.RUSTLTD | https://opengameart.org/content/10-8bit-coin-sounds | CC0 |
 | 25 CC0 mud sfx: `assets/audio/sfx/mud_01.ogg` | rubberduck | https://opengameart.org/node/87193 | CC0 |
