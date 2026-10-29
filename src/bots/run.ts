@@ -1,6 +1,6 @@
 // usage: tsx src/bots/run.ts --bots 20 --seconds 600 [--url http://localhost:3000/events | --out events.jsonl]
 //        [--speed 60] [--duplicate-rate 0.01] [--malformed-rate 0.005]
-import { appendFileSync, writeFileSync } from 'node:fs';
+import { createWriteStream } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { rng } from '../core/sim';
 import type { GameEvent } from '../events/schema';
@@ -14,15 +14,24 @@ const { values: a } = parseArgs({ options: {
 const PERSONAS: Persona[] = ['random_assigner', 'optimizer', 'optimizer', 'quitter'];
 const dup = +a['duplicate-rate']!, bad = +a['malformed-rate']!, speed = +a.speed!;
 const noise = rng(+a.seed!);
-if (a.out) writeFileSync(a.out, '');
+const file = a.out ? createWriteStream(a.out) : null; // buffered, not one sync write per event
+const queue: string[] = [];
+let inflight = 0;
+const MAX_INFLIGHT = 50; // fast-forward mode can produce events far faster than a collector accepts them
+function pump() {
+  while (inflight < MAX_INFLIGHT && queue.length) {
+    inflight++;
+    void fetch(a.url!, { method: 'POST', headers: { 'content-type': 'application/json' }, body: queue.shift()! }).catch(() => {}).finally(() => { inflight--; pump(); });
+  }
+}
 
 async function send(e: GameEvent) {
   const copies = noise() < dup ? 2 : 1; // resend keeps the same event_id
   const body = noise() < bad ? { ...e, event_type: 'nonsense' } : e;
   for (let i = 0; i < copies; i++) {
     const line = JSON.stringify(body);
-    if (a.out) appendFileSync(a.out, line + '\n');
-    else if (a.url) await fetch(a.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: line }).catch(() => {});
+    if (file) file.write(line + '\n');
+    else if (a.url) { queue.push(line); pump(); }
     else console.log(line);
   }
 }
@@ -34,3 +43,6 @@ await Promise.all(Array.from({ length: +a.bots! }, (_, i) =>
     startMs, seconds: +a.seconds!, sink: send,
     pace: speed > 0 ? (v) => new Promise((r) => setTimeout(r, (v / speed) * 1000)) : undefined,
   })));
+
+while (queue.length || inflight) await new Promise((r) => setTimeout(r, 20)); // drain before exiting
+file?.end();

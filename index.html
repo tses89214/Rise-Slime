@@ -51,16 +51,16 @@
   @keyframes sleep { 0%{background-position-x:calc(-80*var(--u))} 50%{background-position-x:calc(-96*var(--u))} }
   @keyframes spin { 0%{background-position-x:calc(-112*var(--u))} 25%{background-position-x:0} 50%{background-position-x:calc(-128*var(--u))} 75%{background-position-x:0} }
   .item { width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(/original/items.png); background-size:calc(96*var(--i)) calc(16*var(--i)); }
-  /* props.png frames (32px): 0 windmill, 1 blades+, 2 blades x, 3 oven, 4 oven lit, 5 oven embers, 6 cloud */
-  .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(/original/props.png); background-size:calc(224*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
-  .p-windmill { --f:0; } .p-oven { --f:3; }
+  /* props.png frames (32px): 0 windmill, 1-4 blades at 0/22/45/68 degrees, 5 oven, 6 oven lit, 7 oven embers, 8 cloud */
+  .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(/original/props.png); background-size:calc(288*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
+  .p-windmill { --f:0; } .p-oven { --f:5; }
   .p-oven.baking { animation:oven 1.4s step-end infinite; }
   /* irregular bright/embers swaps read as flicker; the oven never goes dark while baking */
-  @keyframes oven { 0%{background-position-x:calc(-128*var(--u))} 14%{background-position-x:calc(-160*var(--u))} 26%{background-position-x:calc(-128*var(--u))} 51%{background-position-x:calc(-160*var(--u))} 58%{background-position-x:calc(-128*var(--u))} 82%{background-position-x:calc(-160*var(--u))} 90%{background-position-x:calc(-128*var(--u))} }
+  @keyframes oven { 0%{background-position-x:calc(-192*var(--u))} 14%{background-position-x:calc(-224*var(--u))} 26%{background-position-x:calc(-192*var(--u))} 51%{background-position-x:calc(-224*var(--u))} 58%{background-position-x:calc(-192*var(--u))} 82%{background-position-x:calc(-224*var(--u))} 90%{background-position-x:calc(-192*var(--u))} }
 
   #scene { position:relative; overflow:hidden; background:var(--sky) var(--sky-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)); display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
   @media (max-width:759px) { #scene { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  .cloud { position:absolute; width:calc(32*var(--i)); height:calc(32*var(--i)); background:url(/original/props.png) calc(-6*32*var(--i)) 0/calc(224*var(--i)) calc(32*var(--i)); animation:drift 60s linear infinite; }
+  .cloud { will-change:transform; position:absolute; width:calc(32*var(--i)); height:calc(32*var(--i)); background:url(/original/props.png) calc(-8*32*var(--i)) 0/calc(288*var(--i)) calc(32*var(--i)); animation:drift 60s linear infinite; }
   @keyframes drift { from{transform:translateX(-80px)} to{transform:translateX(1400px)} }
   .zone { position:relative; height:calc(110*var(--u)); display:flex; flex-direction:column; align-items:center; padding-top:10px; }
   .zone::after { content:""; position:absolute; inset:auto 0 0 0; height:calc(36*var(--u)); z-index:0;
@@ -80,21 +80,21 @@
   .windmill { position:relative; width:calc(32*var(--u)); height:calc(32*var(--u)); }
   .windmill .prop { position:absolute; left:0; top:0; }
   .windmill .blades { --f:1; top:calc(-5*var(--u)); }
-  .windmill.working .blades { animation:blades 1s step-end infinite; } /* two frames (+ then x): no pixel rotation, no shimmer */
-  @keyframes blades { 0%{background-position-x:calc(-32*var(--u))} 50%{background-position-x:calc(-64*var(--u))} }
+  .windmill.working .blades { animation:blades .6s step-end infinite; } /* 4 pre-drawn angles = a quarter turn (sails repeat every 90deg); no CSS rotate, which would shimmer */
+  @keyframes blades { 0%{background-position-x:calc(-32*var(--u))} 25%{background-position-x:calc(-64*var(--u))} 50%{background-position-x:calc(-96*var(--u))} 75%{background-position-x:calc(-128*var(--u))} }
   .shop-img { width:calc(64*var(--u)); height:calc(48*var(--u)); background:url(/original/shop.png) 0 0/calc(64*var(--u)) calc(48*var(--u)); position:absolute; bottom:calc(28*var(--u)); right:0; z-index:1; }
-  /* customer: walks to the door, goes in, comes out hugging a loaf, leaves. Two sprites swap at the door; --d staggers customers */
-  .cust { position:absolute; bottom:calc(22*var(--u)); left:100%; width:calc(16*var(--u)); height:calc(16*var(--u)); z-index:2; animation:visit 12s linear infinite var(--d,0s); }
+  /* customers wander the open ground by the shop (moved by JS with transforms), sometimes go in and come out hugging bread */
+  .cust { position:absolute; left:0; bottom:calc(6*var(--u)); width:calc(16*var(--u)); height:calc(16*var(--u)); z-index:2; transition:transform linear; will-change:transform; }
   .cust .cs { position:absolute; inset:0; background:url(/original/customers.png) 0 calc(var(--row,0) * -16 * var(--u))/calc(64*var(--u)) calc(64*var(--u)); }
-  .cust .walk { animation:step .5s step-end infinite, show-in 12s linear infinite var(--d,0s); }
-  .cust .carry { animation:step-carry .5s step-end infinite, show-out 12s linear infinite var(--d,0s); }
+  .cust .carry, .cust[data-s=carry] .walk, .cust[data-s=hidden] { display:none; }
+  .cust[data-s=carry] .carry { display:block; }
+  .cust[data-s=walk] .walk { animation:step .5s step-end infinite; }
+  .cust[data-s=carry] .carry { animation:step-carry .5s step-end infinite; }
   @keyframes step { 0%{background-position-x:0} 50%{background-position-x:calc(-16*var(--u))} }
   @keyframes step-carry { 0%{background-position-x:calc(-32*var(--u))} 50%{background-position-x:calc(-48*var(--u))} }
-  @keyframes visit { 0%{left:100%} 45%{left:74%} 58%{left:74%} 100%{left:105%} } /* 74% = in front of the shop door */
-  @keyframes show-in { 0%,45%{opacity:1} 45.5%,100%{opacity:0} }
-  @keyframes show-out { 0%,57.5%{opacity:0} 58%,100%{opacity:1} }
-  /* "+1 wheat / flour / bread" pops above the field, windmill and oven when they finish something */
-  .gain { position:absolute; left:0; right:0; bottom:calc(62*var(--u)); z-index:4; justify-content:center; pointer-events:none; font:32px monogram,monospace; color:var(--ink); display:flex; align-items:center; animation:rise 1.1s linear forwards; } /* same motion as the shop's +10 */
+  /* "+N wheat / flour / bread" pops above the field, windmill and oven; same motion as the shop's +10 */
+  .gain { position:absolute; left:0; right:0; bottom:calc(62*var(--u)); z-index:4; display:flex; justify-content:center; align-items:center; pointer-events:none; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; }
+  /* swamped slimes (queue backing up) sweat */
   .sweat { position:absolute; top:calc(-4*var(--u)); pointer-events:none; animation:drip .9s linear infinite; opacity:0; }
   @keyframes drip { 0% { opacity:0; transform:translateY(-4px); } 25% { opacity:1; } 100% { opacity:0; transform:translateY(14px); } }
   .float { position:absolute; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; z-index:4; display:flex; align-items:center; }

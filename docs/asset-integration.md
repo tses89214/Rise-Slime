@@ -58,7 +58,7 @@ tools/
 | Mill | `props.png` 的 `windmill` + `blades_plus`/`blades_x` | 只放風車；有材料時葉片兩格交替轉動（不做像素旋轉，會閃爍），沒材料就停住；產出時頭上跳出「+N 麵粉」 |
 | Bakery | `props.png` 的 `oven` / `oven_lit` / `oven_lit_dim` | 只放烤爐；有材料時在亮與餘燼之間不規則閃動（爐火忽明忽暗），沒材料停在 `oven`；產出時頭上跳出「+N 麵包」 |
 | Shop | `shop.png`（溫馨麵包店：條紋雨棚、麵包招牌、亮著的櫥窗、花箱） | 放在最右邊 |
-| 客人 | `customers.png` 的 `walk` / `carry` 動畫 | 從右邊走到店門口，進門消失；再從門口抱著麵包（`carry`）走回右邊離開；每隻每次隨機一種顏色 |
+| 客人 | `customers.png` 的 `walk` / `carry` 動畫 | 7 位客人在店前空地隨機走走停停；每賣出一個麵包，就有一位走進店門、消失一會兒，再抱著麵包（`carry`）從門口走回右邊離開；沒有賣出時閒晃一陣就空手離開，新客人（隨機顏色）從右邊進場 |
 | 售出 | `items.png` 的 `coin` | 售出時店舖冒出金幣和「+10」；各站的「+N」提示用同一套動作 |
 
 `assets/original/preview/scene-preview.png` 是拼好的示意圖，可以當作配置參考。

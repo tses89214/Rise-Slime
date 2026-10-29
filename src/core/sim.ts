@@ -86,13 +86,15 @@ export function upgrade(s: State, id: StationId) {
 
 // ponytail: cycles resolve in chain order within one dt; keep dt small (<=0.1s) for accuracy.
 export function step(s: State, dt: number): void {
+  const n = { farm: 0, mill: 0, bakery: 0 }; // one pass over the slimes instead of one per station
+  for (const x of s.slimes) if (x.station) n[x.station]++;
   let output = 0;
   for (const id of STATIONS) {
     const st = s.stations[id];
     const r = RECIPE[id];
     // A cycle only starts when its input is on hand; starved slimes bank no work.
     if (r.input && st.stock < r.input) st.progress = 0;
-    else st.progress += (count(s, id) * speedMultiplier(st.level) * dt) / r.seconds;
+    else st.progress += (n[id] * speedMultiplier(st.level) * dt) / r.seconds;
     const whole = Math.floor(st.progress + 1e-9); // epsilon: 0.1s steps sum to 2.9999999..
     const cycles = r.input ? Math.min(whole, Math.floor(st.stock / r.input)) : whole;
     st.progress = Math.max(0, st.progress - whole);

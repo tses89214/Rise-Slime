@@ -9,38 +9,50 @@
       "w": 32,
       "h": 32
     },
-    "blades_plus": {
+    "blades_0": {
       "x": 32,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "blades_x": {
+    "blades_22": {
       "x": 64,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "oven": {
+    "blades_45": {
       "x": 96,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "oven_lit": {
+    "blades_68": {
       "x": 128,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "oven_lit_dim": {
+    "oven": {
       "x": 160,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "cloud": {
+    "oven_lit": {
       "x": 192,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "oven_lit_dim": {
+      "x": 224,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "cloud": {
+      "x": 256,
       "y": 0,
       "w": 32,
       "h": 32
@@ -60,10 +72,12 @@
     },
     "blades_turn": {
       "frames": [
-        "blades_plus",
-        "blades_x"
+        "blades_0",
+        "blades_22",
+        "blades_45",
+        "blades_68"
       ],
-      "fps": 2,
+      "fps": 8,
       "repeat": -1
     }
   }

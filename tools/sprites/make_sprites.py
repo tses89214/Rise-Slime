@@ -302,13 +302,14 @@ def prop_cloud():
     return img
 
 
-PROPS = {"windmill": prop_windmill(), "blades_plus": prop_blades(0), "blades_x": prop_blades(45),
+PROPS = {"windmill": prop_windmill(),
+         "blades_0": prop_blades(0), "blades_22": prop_blades(22), "blades_45": prop_blades(45), "blades_68": prop_blades(68),
          "oven": prop_oven(False), "oven_lit": prop_oven(True), "oven_lit_dim": prop_oven("dim"), "cloud": prop_cloud()}
 props_row = [list(PROPS.values())]
 sheet(props_row, 32, 32).save(OUT / "props.png")
 pmeta = atlas("props", props_row, [""], list(PROPS), 32, 32,
               {"oven_baking": {"frames": ["oven_lit", "oven_lit_dim", "oven_lit", "oven_lit_dim", "oven_lit"], "fps": 4, "repeat": -1},
-               "blades_turn": {"frames": ["blades_plus", "blades_x"], "fps": 2, "repeat": -1}})
+               "blades_turn": {"frames": ["blades_0", "blades_22", "blades_45", "blades_68"], "fps": 8, "repeat": -1}})
 (OUT / "props.json").write_text(json.dumps(pmeta, indent=2))
 
 # ---------- shop front (64x48): a cosy bakery ----------

@@ -7,6 +7,7 @@ const NAME: Record<StationId, string> = { farm: 'FARM', mill: 'MILL', bakery: 'B
 const OUT: Record<StationId, string> = { farm: 'wheat', mill: 'flour', bakery: 'bread' };
 const IN: Record<StationId, string> = { farm: '', mill: 'wheat', bakery: 'flour' };
 const SECONDS = { farm: 1, mill: 3, bakery: 5 };
+const CUSTOMERS = 7;
 const MAX_DRAWN = 10; // per zone: 5 per row, 2 rows; the rest shows as "+N"
 const $ = (id: string) => document.getElementById(id)!;
 const store = {
@@ -110,10 +111,7 @@ $('scene').innerHTML =
   zone('farm', `<div class="field">${Array.from({ length: 14 }, (_, i) => item(0, 'wheat').replace('class="', `style="animation-delay:-${((i * 7) % 12) * 0.1}s" class="`)).join('')}</div>`) +
   zone('mill', '<div class="windmill" id="windmill"><span class="prop sprite p-windmill"></span><span class="prop sprite blades"></span></div>') +
   zone('bakery', '<span class="prop sprite p-oven" id="oven"></span>') +
-  `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${[0, 1, 2].map((i) => `<div class="cust" style="--row:${i};--d:-${i * 4}s"><span class="cs walk"></span><span class="cs carry"></span></div>`).join('')}<div id="shop-fx"></div></div>`;
-for (const c of document.querySelectorAll<HTMLElement>('.cust')) {
-  c.addEventListener('animationiteration', (e) => { if ((e as AnimationEvent).animationName === 'visit') c.style.setProperty('--row', String(Math.floor(Math.random() * 4))); }); // random colour per visit; UI-only randomness
-}
+  `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${Array.from({ length: CUSTOMERS }, (_, i) => `<div class="cust" data-s="hidden" style="--row:${i % 4}"><span class="cs walk"></span><span class="cs carry"></span></div>`).join('')}<div id="shop-fx"></div></div>`;
 // sky/grass tiles live in one sheet; slice them so CSS can repeat them
 const tiles = new Image();
 tiles.src = '/original/tiles.png';
@@ -125,6 +123,53 @@ void tiles.decode().then(() => {
     $('scene').style.setProperty(`--${name}-tile`, `url(${c.toDataURL()})`);
   });
 }).catch(() => {});
+
+// --- customers: wander the open ground by the shop. Every bread actually sold sends one of them in through the door; they come out hugging a loaf and leave, and a new one (new colour) arrives ---
+const shopZone = document.querySelectorAll<HTMLElement>('#scene .zone')[3];
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const rnd = (a: number, b: number) => a + Math.random() * (b - a); // UI-only randomness; the core stays seeded
+let buyers = 0; // breads sold that no customer has walked in for yet (capped: at high sales rates customers just cycle)
+async function customer(c: HTMLElement) {
+  const u = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--u')) || 3; // px per art pixel
+  let x = 0;
+  const go = async (to: number, depth: number) => {
+    const dur = Math.max(0.2, Math.abs(to - x) / (12 * u())); // ~12 art px per second: a stroll
+    c.style.transitionDuration = `${dur}s`;
+    c.style.transform = `translate(${to}px,${-depth * u()}px)`;
+    x = to;
+    await sleep(dur * 1000);
+  };
+  const jump = (to: number) => { c.style.transitionDuration = '0s'; c.style.transform = `translate(${to}px,0)`; x = to; };
+  const W = () => shopZone.clientWidth;
+  await sleep(rnd(0, 4000)); // desynchronise
+  for (;;) {
+    jump(W() + 2 * u());
+    c.style.setProperty('--row', String(Math.floor(Math.random() * 4)));
+    await sleep(50);
+    let bought = false;
+    for (let stops = 0; stops < 6 && !bought; stops++) { // wander until a sale happens
+      c.dataset.s = 'walk';
+      await go(rnd(4 * u(), W() - 40 * u()), rnd(0, 14));
+      c.dataset.s = 'idle';
+      await sleep(rnd(700, 2200));
+      if (buyers > 0) { buyers--; bought = true; }
+    }
+    if (bought) {
+      c.dataset.s = 'walk';
+      await go(W() - 26 * u(), 0); // the door
+      c.dataset.s = 'hidden'; // inside, buying
+      await sleep(rnd(800, 1600));
+      c.dataset.s = 'carry';
+      await go(W() + 2 * u(), rnd(0, 6)); // out again with bread, away to the right
+    } else {
+      c.dataset.s = 'walk'; // nothing sold lately: stroll off empty-handed
+      await go(W() + 2 * u(), rnd(0, 6));
+    }
+    c.dataset.s = 'hidden';
+    await sleep(rnd(1000, 4000));
+  }
+}
+document.querySelectorAll<HTMLElement>('.cust').forEach((c) => void customer(c));
 
 // --- cards ---
 $('stations').innerHTML = STATIONS.map((id) => `
@@ -162,15 +207,25 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 });
 
 // --- render ---
+// Elements are looked up once; text/classes are only written when the value changed (writes cost layout even when identical).
+const el = (id: string) => document.getElementById(id)!;
+const ui = {
+  coins: el('coins'), income: el('income'), buy: el('buy') as HTMLButtonElement, buyCost: el('buy-cost'), windmill: el('windmill'), oven: el('oven'), shopFx: el('shop-fx'),
+  st: Object.fromEntries(STATIONS.map((id) => [id, {
+    n: el(`${id}-n`), lv: el(`${id}-lv`), rate: el(`${id}-rate`), ql: el(`${id}-ql`), qn: el(`${id}-qn`), bar: el(`${id}-bar`), card: el(`card-${id}`),
+    up: document.querySelector<HTMLButtonElement>(`[data-up="${id}"]`)!, plus: document.querySelector<HTMLButtonElement>(`[data-plus="${id}"]`)!, minus: document.querySelector<HTMLButtonElement>(`[data-minus="${id}"]`)!,
+  }])) as Record<StationId, { n: HTMLElement; lv: HTMLElement; rate: HTMLElement; ql: HTMLElement; qn: HTMLElement; bar: HTMLElement; card: HTMLElement; up: HTMLButtonElement; plus: HTMLButtonElement; minus: HTMLButtonElement }>,
+};
+const shown = new Map<object, string>();
+const setText = (e: HTMLElement, v: string) => { if (shown.get(e) !== v) { shown.set(e, v); e.textContent = v; } };
 const keys = new Map<string, string>();
-const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !== key) { keys.set(id, key); $(id).innerHTML = html; } };
+const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !== key) { keys.set(id, key); el(id).innerHTML = html; } };
 // colour follows the job: lounge blue, farm green (leafy), mill brown (rocky), bakery red (fiery); cosmetic in M1
 const ROW: Record<string, number> = { lounge: 0, farm: 1, mill: 2, bakery: 3 };
 const slimeEl = (sl: Slime, anim: string, i: number, zzz = false, sweat = false) =>
-  `<span class="${zzz || sweat ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}${sweat ? `<span class="sweat" style="left:${2}px;animation-delay:-${((i * 0.37) % 0.9).toFixed(2)}s">${item(5)}</span><span class="sweat" style="right:2px;animation-delay:-${((i * 0.37 + 0.45) % 0.9).toFixed(2)}s">${item(5)}</span>` : ''}</span>`;
+  `<span class="${zzz || sweat ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}${sweat ? `<span class="sweat" style="left:2px;animation-delay:-${((i * 0.37) % 0.9).toFixed(2)}s">${item(5)}</span><span class="sweat" style="right:2px;animation-delay:-${((i * 0.37 + 0.45) % 0.9).toFixed(2)}s">${item(5)}</span>` : ''}</span>`;
 const crowd = (list: Slime[], anim: string, zzz = false, sweat = false) =>
   list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz, sweat)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
-const here = (where: StationId | null) => s.slimes.filter((x) => x.station === where);
 const keyOf = (list: Slime[], anim: string, sweat = false) => `${anim}${sweat ? '+sweat' : ''}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
 
 const lastMade = Object.fromEntries(STATIONS.map((id) => [id, s.stations[id].made ?? 0])) as Record<StationId, number>;
@@ -178,47 +233,50 @@ const ITEM_OF: Record<StationId, number> = { farm: 0, mill: 1, bakery: 2 }; // w
 // Each finished cycle pops "+N <item>" above the field / windmill / oven. Bursts are merged every 400ms so fast stations don't pile up popups.
 const pending: Record<StationId, number> = { farm: 0, mill: 0, bakery: 0 };
 const lastPop: Record<StationId, number> = { farm: 0, mill: 0, bakery: 0 };
+const sceneZones = [...el('scene').querySelectorAll<HTMLElement>('.zone')];
 function gain(id: StationId, n: number) {
-  const zone = $('scene').querySelectorAll<HTMLElement>('.zone')[STATIONS.indexOf(id)];
-  const el = document.createElement('div');
-  el.className = 'gain';
-  el.innerHTML = `${item(ITEM_OF[id])}+${n}`;
-  el.addEventListener('animationend', () => el.remove());
-  zone.appendChild(el);
+  const zone = sceneZones[STATIONS.indexOf(id)];
+  if (zone.querySelectorAll('.gain').length >= 4) return; // popups die on animationend; never let them pile up
+  const e = document.createElement('div');
+  e.className = 'gain';
+  e.innerHTML = `${item(ITEM_OF[id])}+${n}`;
+  e.addEventListener('animationend', () => e.remove());
+  zone.appendChild(e);
 }
 let rate = 0, lastEarned = s.bread * 10, lastRateAt = performance.now(), lastBread = s.bread, lastCoinSfx = 0;
 function render() {
-  $('coins').textContent = fmt(s.coins);
-  $('income').textContent = `+${rate.toFixed(1)} / sec`;
-  ($('buy') as HTMLButtonElement).disabled = s.coins < slimeCost(s);
-  $('buy-cost').textContent = `${fmt(slimeCost(s))} coins`;
-  const lounge = count(s, null);
-  const waiting = here(null);
-  setHtml('lounge-slimes', keyOf(waiting, 'idle'), crowd(waiting, 'idle'));
+  setText(ui.coins, fmt(s.coins));
+  setText(ui.income, `+${rate.toFixed(1)} / sec`);
+  const cost = slimeCost(s);
+  ui.buy.disabled = s.coins < cost;
+  setText(ui.buyCost, `${fmt(cost)} coins`);
+  const by: Record<string, Slime[]> = { lounge: [], farm: [], mill: [], bakery: [] }; // group once
+  for (const sl of s.slimes) by[sl.station ?? 'lounge'].push(sl);
+  setHtml('lounge-slimes', keyOf(by.lounge, 'idle'), crowd(by.lounge, 'idle'));
 
   for (const id of STATIONS) {
-    const n = count(s, id), st = s.stations[id], stock = Math.floor(st.stock);
+    const list = by[id], n = list.length, st = s.stations[id], u = ui.st[id], stock = Math.floor(st.stock);
     const starved = id !== 'farm' && n > 0 && st.stock < 2;
     const backed = id !== 'farm' && st.stock > 20;
-    $(`${id}-n`).textContent = String(n);
-    $(`${id}-lv`).textContent = String(st.level);
-    $(`${id}-rate`).textContent = `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]} / sec`;
-    $(`${id}-ql`).textContent = id === 'farm' ? 'Queue' : `Queue: ${stock} ${IN[id]}`;
-    $(`${id}-qn`).textContent = id === 'farm' ? '—' : backed ? 'Backing up!' : starved ? 'Starved' : '';
-    $(`${id}-bar`).style.width = id === 'farm' ? '0%' : `${Math.min(100, st.stock * 2)}%`;
-    $(`card-${id}`).classList.toggle('warn', backed);
-    const up = document.querySelector<HTMLButtonElement>(`[data-up="${id}"]`)!;
-    up.textContent = `Upgrade · ${fmt(upgradeCost(s, id))}`;
-    up.disabled = s.coins < upgradeCost(s, id);
-    (document.querySelector(`[data-plus="${id}"]`) as HTMLButtonElement).disabled = lounge === 0;
-    (document.querySelector(`[data-minus="${id}"]`) as HTMLButtonElement).disabled = n === 0;
+    setText(u.n, String(n));
+    setText(u.lv, String(st.level));
+    setText(u.rate, `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]} / sec`);
+    setText(u.ql, id === 'farm' ? 'Queue' : `Queue: ${stock} ${IN[id]}`);
+    setText(u.qn, id === 'farm' ? '—' : backed ? 'Backing up!' : starved ? 'Starved' : '');
+    const w = id === 'farm' ? '0%' : `${Math.min(100, st.stock * 2).toFixed(0)}%`;
+    if (u.bar.style.width !== w) u.bar.style.width = w;
+    u.card.classList.toggle('warn', backed);
+    const upCost = upgradeCost(s, id);
+    setText(u.up, `Upgrade · ${fmt(upCost)}`);
+    u.up.disabled = s.coins < upCost;
+    u.plus.disabled = by.lounge.length === 0;
+    u.minus.disabled = n === 0;
     const anim = starved ? 'sleep' : id === 'mill' ? 'spin' : 'hop';
-    const list = here(id);
     setHtml(`actors-${id}`, keyOf(list, anim, backed), crowd(list, anim, starved, backed)); // backed up = swamped: sweating
   }
   // blades turn and the oven glows only while the station has input to work on
-  $('windmill').classList.toggle('working', s.stations.mill.stock >= 2 && count(s, 'mill') > 0);
-  $('oven').classList.toggle('baking', s.stations.bakery.stock >= 2 && count(s, 'bakery') > 0);
+  ui.windmill.classList.toggle('working', s.stations.mill.stock >= 2 && by.mill.length > 0);
+  ui.oven.classList.toggle('baking', s.stations.bakery.stock >= 2 && by.bakery.length > 0);
 
   for (const id of STATIONS) { // popups for finished cycles
     const made = s.stations[id].made ?? 0;
@@ -226,17 +284,15 @@ function render() {
     lastMade[id] = made;
     if (pending[id] > 0 && performance.now() - lastPop[id] > 400) { gain(id, pending[id]); pending[id] = 0; lastPop[id] = performance.now(); }
   }
-  if (s.bread > lastBread) { // sale feedback at the shop: floating "+10" and a coin sound
-    const gained = (s.bread - lastBread) * 10;
-    setTimeout(() => {
-      const fx = document.createElement('div');
-      fx.className = 'float';
-      fx.style.cssText = `right:${40 + Math.random() * 120}px;bottom:${150 + Math.random() * 40}px`;
-      fx.innerHTML = `${item(3)}+${gained}`;
-      $('shop-fx').appendChild(fx);
-      setTimeout(() => fx.remove(), 1100);
-      if (performance.now() - lastCoinSfx > 400) { sfx('coin1.wav'); lastCoinSfx = performance.now(); }
-    }, 0);
+  if (s.bread > lastBread) buyers = Math.min(6, buyers + (s.bread - lastBread)); // each sale sends a customer through the door
+  if (s.bread > lastBread && ui.shopFx.childElementCount < 6) { // sale feedback at the shop: floating "+10" and a coin sound
+    const fx = document.createElement('div');
+    fx.className = 'float';
+    fx.style.cssText = `right:${40 + Math.random() * 120}px;bottom:${150 + Math.random() * 40}px`;
+    fx.innerHTML = `${item(3)}+${(s.bread - lastBread) * 10}`;
+    fx.addEventListener('animationend', () => fx.remove());
+    ui.shopFx.appendChild(fx);
+    if (performance.now() - lastCoinSfx > 400) { sfx('coin1.wav'); lastCoinSfx = performance.now(); }
   }
   lastBread = s.bread;
 }
@@ -261,7 +317,7 @@ setInterval(() => {
     save();
   }
   if (now - lastRateAt >= 1000) { rate = (s.bread * 10 - lastEarned) / ((now - lastRateAt) / 1000); lastEarned = s.bread * 10; lastRateAt = now; }
-  render();
+  if (!document.hidden) render(); // nothing to draw in a background tab; the sim above keeps running
 }, 100);
 setAchLabel();
 syncAudio();
