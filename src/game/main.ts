@@ -1,3 +1,4 @@
+import { ACHIEVEMENTS, checkAchievements } from '../core/achievements';
 import { type Slime, applyOffline, assignOne, buySlime, count, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { makeEmitter } from '../events/emitter';
 
@@ -46,6 +47,23 @@ $('settings').onclick = () => ($('credits') as HTMLDialogElement).showModal();
 addEventListener('click', () => { if (on.music && music.paused) void music.play().catch(() => {}); }, { once: true });
 document.addEventListener('click', (e) => { if ((e.target as Element).closest('button')) sfx('click_001.ogg'); });
 
+// --- achievements ---
+const toast = (text: string) => {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+};
+const setAchLabel = () => { $('ach').innerHTML = `<span class="long">Achievements</span><span class="short">Ach.</span> ${s.achievements.length}/${ACHIEVEMENTS.length}`; };
+const renderAchievements = () => {
+  $('ach-count').textContent = `${s.achievements.length}/${ACHIEVEMENTS.length}`;
+  $('ach-list').innerHTML = ACHIEVEMENTS.map((a) => {
+    const got = s.achievements.includes(a.id);
+    return `<li class="${got ? '' : 'locked'}"><b>${a.name}</b>${got ? '' : ' (locked)'}<small>${a.desc}</small></li>`;
+  }).join('');
+};
+$('ach').onclick = () => { renderAchievements(); ($('achievements') as HTMLDialogElement).showModal(); };
+
 // --- state ---
 interface Save { state: State; savedAt: number }
 let s: State = newState();
@@ -56,6 +74,8 @@ try {
   if (raw) {
     const save: Save = JSON.parse(raw);
     s = save.state;
+    s.achievements ??= []; // saves from before achievements existed
+    for (const id of STATIONS) s.stations[id].made ??= 0;
     isNew = false;
     offlineSeconds = (Date.now() - save.savedAt) / 1000;
   }
@@ -87,12 +107,12 @@ const zone = (id: StationId, props: string, extra = '') =>
   `<div class="zone"><div class="label">${NAME[id]}</div><div class="props">${props}</div>${extra}<div class="actors" id="actors-${id}"></div></div>`;
 $('scene').innerHTML =
   '<div class="cloud" style="top:18px"></div><div class="cloud" style="top:56px;animation-delay:-30s"></div>' +
-  zone('farm', Array.from({ length: 5 }, (_, i) => item(0, 'wheat').replace('class="', `style="animation-delay:-${i * 0.25}s" class="`)).join('')) +
-  zone('mill', '<div id="wheat-pile" style="display:flex"></div><div class="windmill" id="windmill"><span class="prop sprite p-windmill"></span><span class="prop sprite blades"></span></div>') +
-  zone('bakery', '<span class="prop sprite p-oven" id="oven"></span><div id="flours" style="display:flex"></div>') +
-  `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${[0, 1, 2].map((i) => `<div class="cust sprite" style="--row:${i};animation-delay:0s,-${i * 3}s"></div>`).join('')}<div id="shop-fx"></div></div>`;
+  zone('farm', `<div class="field">${Array.from({ length: 14 }, (_, i) => item(0, 'wheat').replace('class="', `style="animation-delay:-${((i * 7) % 12) * 0.1}s" class="`)).join('')}</div>`) +
+  zone('mill', '<div class="windmill" id="windmill"><span class="prop sprite p-windmill"></span><span class="prop sprite blades"></span></div>') +
+  zone('bakery', '<span class="prop sprite p-oven" id="oven"></span>') +
+  `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${[0, 1, 2].map((i) => `<div class="cust" style="--row:${i};--d:-${i * 4}s"><span class="cs walk"></span><span class="cs carry"></span></div>`).join('')}<div id="shop-fx"></div></div>`;
 for (const c of document.querySelectorAll<HTMLElement>('.cust')) {
-  c.addEventListener('animationiteration', (e) => { if ((e as AnimationEvent).animationName === 'approach') c.style.setProperty('--row', String(Math.floor(Math.random() * 4))); }); // random colour per visit; UI-only randomness
+  c.addEventListener('animationiteration', (e) => { if ((e as AnimationEvent).animationName === 'visit') c.style.setProperty('--row', String(Math.floor(Math.random() * 4))); }); // random colour per visit; UI-only randomness
 }
 // sky/grass tiles live in one sheet; slice them so CSS can repeat them
 const tiles = new Image();
@@ -146,13 +166,26 @@ const keys = new Map<string, string>();
 const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !== key) { keys.set(id, key); $(id).innerHTML = html; } };
 // colour follows the job: lounge blue, farm green (leafy), mill brown (rocky), bakery red (fiery); cosmetic in M1
 const ROW: Record<string, number> = { lounge: 0, farm: 1, mill: 2, bakery: 3 };
-const slimeEl = (sl: Slime, anim: string, i: number, zzz = false) =>
-  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
-const crowd = (list: Slime[], anim: string, zzz = false) =>
-  list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
+const slimeEl = (sl: Slime, anim: string, i: number, zzz = false, sweat = false) =>
+  `<span class="${zzz || sweat ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}${sweat ? `<span class="sweat" style="left:${2}px;animation-delay:-${((i * 0.37) % 0.9).toFixed(2)}s">${item(5)}</span><span class="sweat" style="right:2px;animation-delay:-${((i * 0.37 + 0.45) % 0.9).toFixed(2)}s">${item(5)}</span>` : ''}</span>`;
+const crowd = (list: Slime[], anim: string, zzz = false, sweat = false) =>
+  list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz, sweat)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
 const here = (where: StationId | null) => s.slimes.filter((x) => x.station === where);
-const keyOf = (list: Slime[], anim: string) => `${anim}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
+const keyOf = (list: Slime[], anim: string, sweat = false) => `${anim}${sweat ? '+sweat' : ''}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
 
+const lastMade = Object.fromEntries(STATIONS.map((id) => [id, s.stations[id].made ?? 0])) as Record<StationId, number>;
+const ITEM_OF: Record<StationId, number> = { farm: 0, mill: 1, bakery: 2 }; // wheat, flour, bread sprites in items.png
+// Each finished cycle pops "+N <item>" above the field / windmill / oven. Bursts are merged every 400ms so fast stations don't pile up popups.
+const pending: Record<StationId, number> = { farm: 0, mill: 0, bakery: 0 };
+const lastPop: Record<StationId, number> = { farm: 0, mill: 0, bakery: 0 };
+function gain(id: StationId, n: number) {
+  const zone = $('scene').querySelectorAll<HTMLElement>('.zone')[STATIONS.indexOf(id)];
+  const el = document.createElement('div');
+  el.className = 'gain';
+  el.innerHTML = `${item(ITEM_OF[id])}+${n}`;
+  el.addEventListener('animationend', () => el.remove());
+  zone.appendChild(el);
+}
 let rate = 0, lastEarned = s.bread * 10, lastRateAt = performance.now(), lastBread = s.bread, lastCoinSfx = 0;
 function render() {
   $('coins').textContent = fmt(s.coins);
@@ -181,24 +214,29 @@ function render() {
     (document.querySelector(`[data-minus="${id}"]`) as HTMLButtonElement).disabled = n === 0;
     const anim = starved ? 'sleep' : id === 'mill' ? 'spin' : 'hop';
     const list = here(id);
-    setHtml(`actors-${id}`, keyOf(list, anim), crowd(list, anim, starved));
+    setHtml(`actors-${id}`, keyOf(list, anim, backed), crowd(list, anim, starved, backed)); // backed up = swamped: sweating
   }
-  // props that reflect production state: wheat heap = mill queue, flour sacks = bakery queue, blades/oven animate while working
-  const pile = (stock: number) => (stock < 20 ? 1 : 2); // 1-2 only (they overlap) so the props stay inside their zone; never 0, a vanishing prop flickers
-  const heap = pile(s.stations.mill.stock), sacks = pile(s.stations.bakery.stock);
-  setHtml('wheat-pile', `${heap}`, '<span class="prop sprite p-wheat"></span>'.repeat(heap));
-  setHtml('flours', `${sacks}`, '<span class="prop sprite p-flour"></span>'.repeat(sacks));
+  // blades turn and the oven glows only while the station has input to work on
   $('windmill').classList.toggle('working', s.stations.mill.stock >= 2 && count(s, 'mill') > 0);
   $('oven').classList.toggle('baking', s.stations.bakery.stock >= 2 && count(s, 'bakery') > 0);
 
-  if (s.bread > lastBread) { // sale feedback: floating "+10" and a coin sound
-    const fx = document.createElement('div');
-    fx.className = 'float';
-    fx.style.cssText = `right:${40 + Math.random() * 120}px;bottom:${150 + Math.random() * 40}px`;
-    fx.innerHTML = `${item(3)}+${(s.bread - lastBread) * 10}`;
-    $('shop-fx').appendChild(fx);
-    setTimeout(() => fx.remove(), 1100);
-    if (performance.now() - lastCoinSfx > 400) { sfx('coin1.wav'); lastCoinSfx = performance.now(); }
+  for (const id of STATIONS) { // popups for finished cycles
+    const made = s.stations[id].made ?? 0;
+    pending[id] += made - lastMade[id];
+    lastMade[id] = made;
+    if (pending[id] > 0 && performance.now() - lastPop[id] > 400) { gain(id, pending[id]); pending[id] = 0; lastPop[id] = performance.now(); }
+  }
+  if (s.bread > lastBread) { // sale feedback at the shop: floating "+10" and a coin sound
+    const gained = (s.bread - lastBread) * 10;
+    setTimeout(() => {
+      const fx = document.createElement('div');
+      fx.className = 'float';
+      fx.style.cssText = `right:${40 + Math.random() * 120}px;bottom:${150 + Math.random() * 40}px`;
+      fx.innerHTML = `${item(3)}+${gained}`;
+      $('shop-fx').appendChild(fx);
+      setTimeout(() => fx.remove(), 1100);
+      if (performance.now() - lastCoinSfx > 400) { sfx('coin1.wav'); lastCoinSfx = performance.now(); }
+    }, 0);
   }
   lastBread = s.bread;
 }
@@ -210,6 +248,12 @@ setInterval(() => {
   acc += Math.min((now - last) / 1000, 1); // tab throttling: longer gaps are covered by offline logic on reload
   last = now;
   while (acc >= 0.1) { step(s, 0.1); acc -= 0.1; tickAcc += 0.1; }
+  for (const a of checkAchievements(s)) {
+    sfx('confirmation_002.ogg');
+    toast(`Achievement unlocked: ${a.name}`);
+    emit?.('achievement_unlocked', Date.now(), { achievement_id: a.id, total_unlocked: s.achievements.length });
+    setAchLabel();
+  }
   if (tickAcc >= 5) {
     tickAcc = 0;
     emit?.('production_tick', Date.now(), { window_start: new Date(windowStart).toISOString(), window_end: new Date().toISOString(), ...takeWindow(s) });
@@ -219,5 +263,6 @@ setInterval(() => {
   if (now - lastRateAt >= 1000) { rate = (s.bread * 10 - lastEarned) / ((now - lastRateAt) / 1000); lastEarned = s.bread * 10; lastRateAt = now; }
   render();
 }, 100);
+setAchLabel();
 syncAudio();
 addEventListener('pagehide', () => { emit?.('session_end', Date.now(), { session_seconds: (Date.now() - t0) / 1000, reason: 'closed' }); save(); });

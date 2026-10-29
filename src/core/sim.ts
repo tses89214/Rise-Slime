@@ -15,6 +15,7 @@ export interface Station {
   level: number;
   progress: number; // fractional cycles carried between steps
   stock: number; // input waiting to be processed
+  made: number; // lifetime cycles completed (the UI animates deltas of this)
   produced: number; // window counters, reset by takeWindow
   consumed: number;
 }
@@ -26,14 +27,15 @@ export interface State {
   coinsEarned: number; // window
   slimes: Slime[];
   stations: Record<StationId, Station>;
+  achievements: string[]; // unlocked ids, in unlock order
 }
 
 export function newState(assign: Record<StationId, number> = { farm: 1, mill: 1, bakery: 1 }): State {
   const slimes: Slime[] = [];
   for (const id of STATIONS) for (let i = 0; i < assign[id]; i++) slimes.push({ id: `slime-s${slimes.length}`, station: id });
-  const st = (): Station => ({ level: 0, progress: 0, stock: 0, produced: 0, consumed: 0 });
+  const st = (): Station => ({ level: 0, progress: 0, stock: 0, made: 0, produced: 0, consumed: 0 });
   return {
-    coins: 20, bread: 0, totalPurchased: 0, breadSold: 0, coinsEarned: 0, slimes,
+    coins: 20, bread: 0, totalPurchased: 0, breadSold: 0, coinsEarned: 0, slimes, achievements: [],
     stations: { farm: st(), mill: st(), bakery: st() },
   };
 }
@@ -97,6 +99,7 @@ export function step(s: State, dt: number): void {
     st.stock -= cycles * r.input;
     st.consumed += cycles * r.input;
     st.produced += cycles;
+    st.made += cycles;
     output = cycles;
     const next = STATIONS[STATIONS.indexOf(id) + 1];
     if (next) s.stations[next].stock += output;

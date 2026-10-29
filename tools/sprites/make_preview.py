@@ -44,7 +44,7 @@ cust = Image.open(SRC / "customers.png")
 items = Image.open(SRC / "items.png")
 shop = Image.open(SRC / "shop.png")
 sky, grass_top, grass, fence = (frame(tiles, 16, 16, i, 0) for i in range(4))
-windmill, blades, _bx, oven, oven_lit, sacks, fsack, cloud = (frame(props, 32, 32, i, 0) for i in range(8))
+windmill, blades, _bx, oven, oven_lit, _dim, cloud = (frame(props, 32, 32, i, 0) for i in range(7))
 wheat, flour, bread, coin, zzz = (frame(items, 16, 16, i, 0) for i in range(5))
 meta = json.loads((SRC / "slimes.json").read_text())
 names = list(meta["frames"])
@@ -73,7 +73,6 @@ for i, (row, fr) in enumerate(((0, "idle_0"), (1, "hop_air"), (0, "hop_squash"),
     sc.alpha_composite(slime(row, fr), (2 + i * 15, GROUND + 6))
 sc.alpha_composite(fence, (56, GROUND - 16))
 # mill
-sc.alpha_composite(sacks, (66, GROUND - 32))
 sc.alpha_composite(windmill, (98, GROUND - 30))
 sc.alpha_composite(blades, (98, GROUND - 41))
 for i, (row, fr) in enumerate(((0, "spin_left"), (2, "spin_right"), (0, "idle_0"))):

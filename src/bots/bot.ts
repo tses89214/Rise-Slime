@@ -1,3 +1,4 @@
+import { checkAchievements } from '../core/achievements';
 import { assignOne, buySlime, count, newState, rng, slimeCost, STATIONS, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { makeEmitter } from '../events/emitter';
 import type { GameEvent } from '../events/schema';
@@ -19,6 +20,7 @@ export async function runBot(o: BotOpts) {
   for (let t = 1; t <= seconds; t++) {
     for (let i = 0; i < 10; i++) step(s, 0.1);
     act(t);
+    for (const a of checkAchievements(s)) emit('achievement_unlocked', at(t), { achievement_id: a.id, total_unlocked: s.achievements.length });
     if (t % 5 === 0) {
       emit('production_tick', at(t), { window_start: new Date(at(windowStart)).toISOString(), window_end: new Date(at(t)).toISOString(), ...takeWindow(s) });
       windowStart = t;

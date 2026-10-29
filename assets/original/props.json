@@ -33,20 +33,14 @@
       "w": 32,
       "h": 32
     },
-    "wheat_pile": {
+    "oven_lit_dim": {
       "x": 160,
       "y": 0,
       "w": 32,
       "h": 32
     },
-    "flour_sack": {
-      "x": 192,
-      "y": 0,
-      "w": 32,
-      "h": 32
-    },
     "cloud": {
-      "x": 224,
+      "x": 192,
       "y": 0,
       "w": 32,
       "h": 32
@@ -55,10 +49,13 @@
   "animations": {
     "oven_baking": {
       "frames": [
-        "oven",
+        "oven_lit",
+        "oven_lit_dim",
+        "oven_lit",
+        "oven_lit_dim",
         "oven_lit"
       ],
-      "fps": 2,
+      "fps": 4,
       "repeat": -1
     },
     "blades_turn": {

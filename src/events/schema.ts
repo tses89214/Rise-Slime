@@ -32,6 +32,7 @@ export const GameEvent = z.discriminatedUnion('event_type', [
     event_type: z.literal('station_upgraded'), station, new_level: z.number(), cost: z.number(),
     speed_multiplier: z.number(), milestone_reached: z.boolean(), coins_after: z.number(),
   }),
+  base.extend({ event_type: z.literal('achievement_unlocked'), achievement_id: z.string(), total_unlocked: z.number().int().positive() }),
   base.extend({
     event_type: z.literal('production_tick'), window_start: ts, window_end: ts,
     stations: z.array(z.object({ station, slimes: z.number(), level: z.number(), produced: z.number(), consumed: z.number(), input_stock: z.number() })),

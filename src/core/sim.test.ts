@@ -224,6 +224,20 @@ describe('step: production chain', () => {
   });
 });
 
+describe('made counter', () => {
+  test('counts lifetime cycles per station and survives takeWindow', () => {
+    const s = newState(OPTIMAL);
+    run(s, 30);
+    const before = STATIONS.map((i) => s.stations[i].made);
+    expect(before[0]).toBe(s.stations.farm.produced);
+    takeWindow(s);
+    expect(STATIONS.map((i) => s.stations[i].made)).toEqual(before);
+    run(s, 30);
+    expect(s.stations.bakery.made).toBe(s.bread);
+    expect(STATIONS.every((i, k) => s.stations[i].made > before[k])).toBe(true);
+  });
+});
+
 describe('takeWindow', () => {
   test('reports per-station counters and resets them, keeping stock/coins', () => {
     const s = newState({ farm: 4, mill: 1, bakery: 5 });

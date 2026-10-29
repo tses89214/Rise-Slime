@@ -124,7 +124,7 @@ meta["note"] = "Rows are mutation colors; animations list frame names within one
 CUST = {"pink": "#E59AC2", "purple": "#A98BD8", "teal": "#8FD3C6", "lime": "#C6DE6E"}
 
 
-def draw_customer(color, step):
+def draw_customer(color, step, bread=False):
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     c, dk = hx(color), shade(color, 0.78)
@@ -142,28 +142,45 @@ def draw_customer(color, step):
     d.rectangle([ox + 2, oy + 4, ox + 2, oy + 5], fill=hx(INK))
     d.rectangle([ox + 6, oy + 4, ox + 6, oy + 5], fill=hx(INK))
     d.point((ox + 4, oy + 6), fill=hx(INK))
+    if bread:  # a loaf hugged in front of the belly
+        d.ellipse([ox - 1, oy + 6, ox + 9, oy + 10], fill=hx("#D9923B"), outline=hx(INK))
+        d.point((ox + 2, oy + 7), fill=hx("#F7D774"))
+        d.point((ox + 5, oy + 7), fill=hx("#F7D774"))
     return img
 
 
-cust_rows = [[draw_customer(c, 0), draw_customer(c, 1)] for c in CUST.values()]
+cust_rows = [[draw_customer(c, 0), draw_customer(c, 1), draw_customer(c, 0, True), draw_customer(c, 1, True)] for c in CUST.values()]
 sheet(cust_rows, 16, 16).save(OUT / "customers.png")
 (OUT / "customers.json").write_text(json.dumps(atlas(
-    "customers", cust_rows, list(CUST), ["walk_0", "walk_1"], 16, 16,
-    {"walk": {"frames": ["walk_0", "walk_1"], "fps": 4, "repeat": -1}}), indent=2))
+    "customers", cust_rows, list(CUST), ["walk_0", "walk_1", "carry_0", "carry_1"], 16, 16,
+    {"walk": {"frames": ["walk_0", "walk_1"], "fps": 4, "repeat": -1},
+     "carry": {"frames": ["carry_0", "carry_1"], "fps": 4, "repeat": -1}}), indent=2))
 
 # ---------- items (16x16) ----------
 
 
 def item_wheat():
+    """A wheat ear: grains in staggered pairs up a stem, awns on top, two leaves."""
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rectangle([7, 6, 8, 15], fill=hx("#7A9A2E"))
-    d.rectangle([9, 10, 10, 10], fill=hx("#7A9A2E"))
-    d.rectangle([6, 1, 9, 6], fill=hx("#E9B949"))
-    d.rectangle([4, 3, 5, 6], fill=hx("#E9B949"))
-    d.rectangle([10, 3, 11, 6], fill=hx("#E9B949"))
-    d.rectangle([7, 1, 8, 1], fill=hx("#F7D774"))
-    d.rectangle([6, 6, 9, 6], fill=hx("#C98A12"))
+    gold, dark, light, green = hx("#E9B949"), hx("#C98A12"), hx("#F7D774"), hx("#7A9A2E")
+    d.rectangle([7, 8, 8, 15], fill=green)  # stem
+    d.rectangle([4, 12, 6, 12], fill=green)  # leaves
+    d.rectangle([3, 11, 3, 11], fill=green)
+    d.rectangle([9, 13, 11, 13], fill=green)
+    d.rectangle([12, 12, 12, 12], fill=green)
+    for y in (2, 4, 6, 8):  # grains: left/right pairs, each with a darker underside
+        d.rectangle([5, y, 7, y + 1], fill=gold)
+        d.rectangle([8, y, 10, y + 1], fill=gold)
+        d.point((5, y + 1), fill=dark)
+        d.point((10, y + 1), fill=dark)
+        d.point((7, y + 1), fill=dark)
+        d.point((8, y + 1), fill=dark)
+    d.rectangle([7, 0, 8, 1], fill=light)  # tip
+    d.point((6, 0), fill=light)  # awns
+    d.point((9, 0), fill=light)
+    d.point((5, 1), fill=light)
+    d.point((10, 1), fill=light)
     return img
 
 
@@ -210,7 +227,19 @@ def item_zzz():
     return img
 
 
-ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz()}
+def item_sweat():
+    """A sweat drop: slimes show it when their queue is piling up."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    drop, edge, light = hx("#6FC3FF"), hx("#3F8FD6"), hx("#E3F4FF")
+    d.polygon([(8, 1), (5, 7), (11, 7)], fill=drop)
+    d.ellipse([4, 6, 11, 13], fill=drop, outline=edge)
+    d.point((6, 9), fill=light)
+    d.point((6, 10), fill=light)
+    return img
+
+
+ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz(), "sweat": item_sweat()}
 items_row = [list(ITEMS.values())]
 sheet(items_row, 16, 16).save(OUT / "items.png")
 (OUT / "items.json").write_text(json.dumps(atlas("items", items_row, [""], list(ITEMS), 16, 16), indent=2))
@@ -246,34 +275,6 @@ def prop_blades(angle):
     return img
 
 
-def prop_wheat_pile():
-    """Golden heap of wheat: the mill's input queue."""
-    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.polygon([(1, 31), (4, 19), (10, 11), (16, 8), (22, 11), (28, 19), (31, 31)], fill=hx("#E9B949"), outline=hx(INK))
-    for x in range(5, 28, 4):
-        d.line([(x, 30), (x + 3, 17)], fill=hx("#C98A12"))
-    for x, y in ((9, 13), (15, 9), (21, 13), (13, 6), (19, 6)):  # ears sticking out
-        d.rectangle([x, y, x + 1, y + 3], fill=hx("#F7D774"), outline=hx("#C98A12"))
-    return img
-
-
-def prop_flour_sack():
-    """Cloth sack with a tied neck and an F: the mill's output, the bakery's input."""
-    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.polygon([(6, 13), (26, 13), (29, 22), (27, 31), (5, 31), (3, 22)], fill=hx("#F4EFE6"), outline=hx(INK))
-    d.polygon([(24, 15), (27, 22), (25, 30), (22, 30), (24, 22)], fill=hx("#D8CFBE"))
-    d.polygon([(11, 13), (21, 13), (20, 8), (12, 8)], fill=hx("#F4EFE6"), outline=hx(INK))
-    d.rectangle([10, 5, 21, 8], fill=hx("#F4EFE6"), outline=hx(INK))  # gathered cloth above the tie
-    d.rectangle([11, 12, 20, 13], fill=hx("#8A5A3B"))  # rope
-    f = hx("#E2604A")
-    d.rectangle([12, 18, 13, 27], fill=f)  # the F
-    d.rectangle([12, 18, 19, 19], fill=f)
-    d.rectangle([12, 22, 17, 23], fill=f)
-    return img
-
-
 def prop_oven(lit):
     img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -282,7 +283,10 @@ def prop_oven(lit):
     for y in (12, 18, 24):
         d.line([2, y, 29, y], fill=hx("#9C5640"))
     d.rectangle([8, 17, 23, 31], fill=hx("#F08A24" if lit else "#4A2A1E"), outline=hx(INK))
-    if lit:
+    if lit == "dim":  # embers: the low end of the flicker
+        d.rectangle([9, 18, 22, 30], fill=hx("#B8561A"))
+        d.rectangle([13, 26, 18, 30], fill=hx("#F08A24"))
+    elif lit:
         d.rectangle([11, 22, 20, 30], fill=hx("#FFD36B"))
     return img
 
@@ -299,31 +303,60 @@ def prop_cloud():
 
 
 PROPS = {"windmill": prop_windmill(), "blades_plus": prop_blades(0), "blades_x": prop_blades(45),
-         "oven": prop_oven(False), "oven_lit": prop_oven(True), "wheat_pile": prop_wheat_pile(),
-         "flour_sack": prop_flour_sack(), "cloud": prop_cloud()}
+         "oven": prop_oven(False), "oven_lit": prop_oven(True), "oven_lit_dim": prop_oven("dim"), "cloud": prop_cloud()}
 props_row = [list(PROPS.values())]
 sheet(props_row, 32, 32).save(OUT / "props.png")
 pmeta = atlas("props", props_row, [""], list(PROPS), 32, 32,
-              {"oven_baking": {"frames": ["oven", "oven_lit"], "fps": 2, "repeat": -1},
+              {"oven_baking": {"frames": ["oven_lit", "oven_lit_dim", "oven_lit", "oven_lit_dim", "oven_lit"], "fps": 4, "repeat": -1},
                "blades_turn": {"frames": ["blades_plus", "blades_x"], "fps": 2, "repeat": -1}})
 (OUT / "props.json").write_text(json.dumps(pmeta, indent=2))
 
-# ---------- shop front (64x48) ----------
+# ---------- shop front (64x48): a cosy bakery ----------
 shop = Image.new("RGBA", (64, 48), (0, 0, 0, 0))
 d = ImageDraw.Draw(shop)
-d.rectangle([2, 10, 61, 47], fill=(255, 255, 255, 255), outline=hx(INK))
-for i in range(8):
-    x0 = 1 + i * 8
-    d.rectangle([x0, 2, x0 + 7, 11], fill=hx("#FF9EC4" if i % 2 == 0 else "#FFFFFF"))
-d.rectangle([0, 2, 63, 11], outline=hx(INK))
-d.rectangle([7, 18, 26, 32], fill=hx("#BFE3FF"), outline=hx(INK))
-d.line([16, 18, 16, 32], fill=hx(INK))
-d.rectangle([8, 30, 25, 31], fill=hx("#8A5A3B"))  # shelf
-for x in (9, 15, 21):  # loaves on display
-    d.ellipse([x, 24, x + 6, 30], fill=hx("#D9923B"), outline=hx(INK))
-    d.point((x + 2, 26), fill=hx("#F7D774"))
-d.rectangle([38, 22, 53, 47], fill=hx("#8A5A3B"), outline=hx(INK))
-d.point((50, 35), fill=hx("#F5C342"))
+INKC, WOOD, GLOW = hx(INK), hx("#8A5A3B"), hx("#FFE9A8")
+d.rectangle([47, 0, 54, 9], fill=hx("#B5674A"), outline=INKC)  # chimney
+d.rectangle([46, 0, 55, 1], fill=hx("#8E4A36"), outline=INKC)
+d.rectangle([3, 20, 60, 47], fill=hx("#F6DDB0"), outline=INKC)  # warm cream wall
+d.rectangle([4, 39, 59, 46], fill=hx("#E8C58A"))  # lower wall band
+d.polygon([(0, 14), (7, 5), (56, 5), (63, 14)], fill=hx("#B5674A"), outline=INKC)  # tiled roof
+for y in (8, 11):
+    d.line([(4 if y == 11 else 6, y), (59 if y == 11 else 57, y)], fill=hx("#8E4A36"))
+for i in range(8):  # striped awning with a scalloped edge
+    x0 = 2 + i * 7
+    c = hx("#FF9EC4" if i % 2 == 0 else "#FFFFFF")
+    d.rectangle([x0, 14, x0 + 6, 19], fill=c)
+    d.ellipse([x0, 17, x0 + 6, 22], fill=c, outline=INKC)
+d.rectangle([2, 13, 61, 14], fill=INKC)
+d.ellipse([26, 3, 37, 13], fill=hx("#FFF6E0"), outline=INKC)  # round plaque with a loaf
+d.ellipse([28, 6, 35, 11], fill=hx("#D9923B"), outline=INKC)
+d.point((30, 7), fill=hx("#F7D774"))
+d.point((33, 7), fill=hx("#F7D774"))
+# shop window, lit warm, bread on the shelf
+d.rectangle([7, 24, 31, 39], fill=GLOW, outline=INKC)
+d.rectangle([6, 23, 32, 24], fill=WOOD)
+d.line([19, 25, 19, 38], fill=WOOD)
+d.rectangle([8, 33, 30, 34], fill=WOOD)  # shelf
+for x in (9, 14):
+    d.ellipse([x, 28, x + 5, 33], fill=hx("#D9923B"), outline=INKC)
+    d.point((x + 2, 29), fill=hx("#F7D774"))
+d.rectangle([21, 29, 29, 33], fill=hx("#E9B949"), outline=INKC)  # baguette
+d.line([22, 30, 28, 30], fill=hx("#C98A12"))
+d.ellipse([21, 36, 25, 39], fill=hx("#D9923B"), outline=INKC)  # roll on the lower shelf
+d.ellipse([26, 36, 30, 39], fill=hx("#D9923B"), outline=INKC)
+d.rectangle([6, 40, 32, 44], fill=WOOD, outline=INKC)  # flower box
+for x, c in ((8, "#FF9EC4"), (12, "#FFFFFF"), (16, "#F5C342"), (20, "#FF9EC4"), (24, "#FFFFFF"), (28, "#F5C342")):
+    d.rectangle([x, 38, x + 1, 39], fill=hx(c))
+    d.point((x, 40), fill=hx("#4FAF6A"))
+# door with a round window and a little OPEN flag
+d.rectangle([38, 25, 54, 47], fill=WOOD, outline=INKC)
+d.ellipse([42, 28, 50, 36], fill=GLOW, outline=INKC)
+d.line([46, 28, 46, 36], fill=WOOD)
+d.rectangle([41, 40, 51, 45], fill=hx("#A06E4A"))
+d.point((51, 38), fill=hx("#F5C342"))
+d.rectangle([56, 28, 60, 34], fill=hx("#FFF6E0"), outline=INKC)  # hanging sign
+d.line([58, 26, 58, 28], fill=INKC)
+d.point((58, 31), fill=hx("#E2604A"))
 shop.save(OUT / "shop.png")
 
 # ---------- tiles (16x16) ----------

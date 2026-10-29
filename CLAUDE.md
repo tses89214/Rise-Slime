@@ -65,6 +65,7 @@ npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # o
 
 ## Layout
 
+- `src/core/achievements.ts` — achievement catalogue as pure predicates on `State`; `checkAchievements` is idempotent and records unlocks in `state.achievements`.
 - `src/core/sim.ts` — pure simulation (stations, costs, offline progress, seeded `rng`). No clock, no `Math.random`.
 - `src/events/` — zod `GameEvent` schema (single source of truth) + `makeEmitter` (stamps shared fields, UUID v7; caller passes `now`).
 - `src/bots/` — `runBot` (personas: random_assigner, optimizer, quitter) and CLI with duplicate/malformed fault injection.
@@ -75,4 +76,4 @@ npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # o
 
 ## Repo state
 
-M1 first version done: core sim, events, bots, collector, browser game with original art. Not yet: Phaser, bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2), the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.
+M1 first version done: core sim, events, bots, collector, browser game with original art. Also done: achievements (UI + `achievement_unlocked` event, bots emit it), production popups, sweating when swamped, customers leaving with bread. Not yet: Phaser, bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2), the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.

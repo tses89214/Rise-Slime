@@ -439,6 +439,22 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 
 新分頁出現就是新的目標，這本身就是放置遊戲的節奏設計。每次解鎖都記一筆 `feature_unlocked` 事件（M3 隨 schema 改版加入），用來分析玩家在哪個階段卡住。
 
+## 成就（M1）
+
+純演出用的小目標，沒有獎勵；每次解鎖發一筆 `achievement_unlocked` 事件，可以看出玩家卡在哪個階段。條件是遊戲狀態的純函式（`src/core/achievements.ts`），已解鎖的存在存檔裡，不會因條件消失而收回。
+
+| id | 名稱 | 條件 |
+| --- | --- | --- |
+| `first_bread` / `bread_100` / `bread_1000` | First Batch / Baker / Bread Baron | 累計賣出 1 / 100 / 1,000 個麵包 |
+| `first_slime` / `slimes_10` / `slimes_25` | New Friend / Slime Pit / Slime Army | 累計購買 1 / 10 / 25 隻史萊姆 |
+| `first_upgrade` / `level_10` | Better Tools / Double Speed | 任一站升到 1 級 / 10 級（x2 里程碑） |
+| `backed_up` | Traffic Jam | 磨粉或烘焙站庫存堆到 50 |
+| `crowded` | Crowded Room | 單一工作站有 10 隻史萊姆 |
+| `perfect_split` | Perfect Split | 分配剛好 4 : 6 : 5 |
+| `coins_1000` | Thousandaire | 同時持有 1,000 金幣 |
+
+介面：標題列「Achievements 已解鎖/總數」按鈕開清單，解鎖時右下角跳出提示。
+
 ## 資料與 insight
 
 核心故事：儀表板發現玩家卡在某個階段，調整數值後做 A/B 比較，指標改善。這呼應「資料要產生價值」的主張。
@@ -466,7 +482,7 @@ M1 只有一個主畫面：上方是有客人走動的店面，下方是三張�
 
 ## M1 事件規格
 
-M1 共 7 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一筆。500 個 bot 同時運作時，彙總事件約每秒 100 筆，再加上動作事件。所有事件 `schema_version` 為 1。
+M1 共 8 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一筆。500 個 bot 同時運作時，彙總事件約每秒 100 筆，再加上動作事件。所有事件 `schema_version` 為 1。
 
 **共用欄位**（每筆事件都有）
 
@@ -495,6 +511,7 @@ M1 共 7 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一�
 | `slime_purchased` | 買新史萊姆 | `slime_id`、`cost`、`total_purchased`、`coins_after` |
 | `slime_assigned` | 調整崗位 | `slime_id`、`from_station`、`to_station`（待命區為空） |
 | `station_upgraded` | 升級工作站 | `station`、`new_level`、`cost`、`speed_multiplier`、`milestone_reached`、`coins_after` |
+| `achievement_unlocked` | 解鎖成就 | `achievement_id`、`total_unlocked` |
 | `production_tick` | 每 5 秒 | `window_start`、`window_end`、`stations`（每站的人數、等級、產量、消耗量、待處理庫存）、`bread_sold`、`coins_earned`、`coins_balance` |
 
 `production_tick` 範例：
