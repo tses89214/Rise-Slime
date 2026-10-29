@@ -279,6 +279,17 @@ describe('applyOffline', () => {
     expect(r.coinsEarned).toBe(b.coins - 20);
     expect(r.breadSold).toBe(b.bread);
   });
+  test('offline output does not leak into the next production window (it is reported once, by offline_progress_applied)', () => {
+    const s = newState(OPTIMAL);
+    run(s, 12); // a little online play first: that part of the window must survive
+    const online = takeWindow(structuredClone(s));
+    const r = applyOffline(s, 3600);
+    expect(r.coinsEarned).toBeGreaterThan(0);
+    const w = takeWindow(s);
+    expect(w.stations.map((x) => x.produced)).toEqual(online.stations.map((x) => x.produced));
+    expect(w.coins_earned).toBe(online.coins_earned);
+    expect(w.bread_sold).toBe(online.bread_sold);
+  });
   test('caps credited time at 8 hours and still reports the real offline time', () => {
     const s = newState(OPTIMAL);
     const r = applyOffline(s, 24 * 3600);

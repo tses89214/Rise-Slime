@@ -120,12 +120,19 @@ export function step(s: State, dt: number): void {
 export function applyOffline(s: State, seconds: number) {
   const credited = Math.min(seconds, OFFLINE_CAP_SECONDS);
   const before = { coins: s.coins, bread: s.bread, produced: STATIONS.map((i) => s.stations[i].produced) };
+  const window = { consumed: STATIONS.map((i) => s.stations[i].consumed), breadSold: s.breadSold, coinsEarned: s.coinsEarned };
   for (let t = 0; t < credited; t += 1) step(s, 1);
-  return {
+  const result = {
     offlineSeconds: seconds, creditedSeconds: credited,
     breadSold: s.bread - before.bread, coinsEarned: s.coins - before.coins,
     produced: Object.fromEntries(STATIONS.map((i, k) => [i, s.stations[i].produced - before.produced[k]])),
   };
+  // The window counters feed production_tick; offline output is reported once, by offline_progress_applied, so it must not
+  // also land in the next tick as if it happened in a few seconds.
+  STATIONS.forEach((i, k) => { s.stations[i].produced = before.produced[k]; s.stations[i].consumed = window.consumed[k]; });
+  s.breadSold = window.breadSold;
+  s.coinsEarned = window.coinsEarned;
+  return result;
 }
 
 export function takeWindow(s: State) {
