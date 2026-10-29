@@ -88,10 +88,12 @@ export function step(s: State, dt: number): void {
   for (const id of STATIONS) {
     const st = s.stations[id];
     const r = RECIPE[id];
-    st.progress += (count(s, id) * speedMultiplier(st.level) * dt) / r.seconds;
-    const whole = Math.floor(st.progress);
+    // A cycle only starts when its input is on hand; starved slimes bank no work.
+    if (r.input && st.stock < r.input) st.progress = 0;
+    else st.progress += (count(s, id) * speedMultiplier(st.level) * dt) / r.seconds;
+    const whole = Math.floor(st.progress + 1e-9); // epsilon: 0.1s steps sum to 2.9999999..
     const cycles = r.input ? Math.min(whole, Math.floor(st.stock / r.input)) : whole;
-    st.progress -= whole; // starved slimes don't bank work
+    st.progress = Math.max(0, st.progress - whole);
     st.stock -= cycles * r.input;
     st.consumed += cycles * r.input;
     st.produced += cycles;

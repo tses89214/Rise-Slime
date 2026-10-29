@@ -1,0 +1,65 @@
+{
+  "image": "customers.png",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": {
+    "pink/walk_0": {
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "pink/walk_1": {
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "purple/walk_0": {
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "purple/walk_1": {
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "teal/walk_0": {
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "teal/walk_1": {
+      "x": 16,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "lime/walk_0": {
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "lime/walk_1": {
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    }
+  },
+  "animations": {
+    "walk": {
+      "frames": [
+        "walk_0",
+        "walk_1"
+      ],
+      "fps": 4,
+      "repeat": -1
+    }
+  }
+}

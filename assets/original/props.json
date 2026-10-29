@@ -1,0 +1,47 @@
+{
+  "image": "props.png",
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "frames": {
+    "millstone": {
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "oven": {
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "oven_lit": {
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "sacks": {
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "cloud": {
+      "x": 128,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    }
+  },
+  "animations": {
+    "oven_baking": {
+      "frames": [
+        "oven",
+        "oven_lit"
+      ],
+      "fps": 2,
+      "repeat": -1
+    }
+  }
+}

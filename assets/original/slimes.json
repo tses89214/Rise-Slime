@@ -1,0 +1,319 @@
+{
+  "image": "slimes.png",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": {
+    "normal/idle_0": {
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/idle_blink": {
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/hop_squash": {
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/hop_stretch": {
+      "x": 48,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/hop_air": {
+      "x": 64,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/sleep_0": {
+      "x": 80,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/sleep_1": {
+      "x": 96,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/spin_left": {
+      "x": 112,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "normal/spin_right": {
+      "x": 128,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/idle_0": {
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/idle_blink": {
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/hop_squash": {
+      "x": 32,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/hop_stretch": {
+      "x": 48,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/hop_air": {
+      "x": 64,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/sleep_0": {
+      "x": 80,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/sleep_1": {
+      "x": 96,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/spin_left": {
+      "x": 112,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "leafy/spin_right": {
+      "x": 128,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/idle_0": {
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/idle_blink": {
+      "x": 16,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/hop_squash": {
+      "x": 32,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/hop_stretch": {
+      "x": 48,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/hop_air": {
+      "x": 64,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/sleep_0": {
+      "x": 80,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/sleep_1": {
+      "x": 96,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/spin_left": {
+      "x": 112,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "rocky/spin_right": {
+      "x": 128,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/idle_0": {
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/idle_blink": {
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/hop_squash": {
+      "x": 32,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/hop_stretch": {
+      "x": 48,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/hop_air": {
+      "x": 64,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/sleep_0": {
+      "x": 80,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/sleep_1": {
+      "x": 96,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/spin_left": {
+      "x": 112,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "fiery/spin_right": {
+      "x": 128,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/idle_0": {
+      "x": 0,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/idle_blink": {
+      "x": 16,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/hop_squash": {
+      "x": 32,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/hop_stretch": {
+      "x": 48,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/hop_air": {
+      "x": 64,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/sleep_0": {
+      "x": 80,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/sleep_1": {
+      "x": 96,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/spin_left": {
+      "x": 112,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "lucky/spin_right": {
+      "x": 128,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    }
+  },
+  "animations": {
+    "idle": {
+      "frames": [
+        "idle_0",
+        "idle_0",
+        "idle_0",
+        "idle_blink"
+      ],
+      "fps": 4,
+      "repeat": -1
+    },
+    "hop": {
+      "frames": [
+        "hop_squash",
+        "hop_stretch",
+        "hop_air",
+        "hop_stretch",
+        "idle_0"
+      ],
+      "fps": 10,
+      "repeat": -1
+    },
+    "sleep": {
+      "frames": [
+        "sleep_0",
+        "sleep_1"
+      ],
+      "fps": 1.5,
+      "repeat": -1
+    },
+    "spin": {
+      "frames": [
+        "spin_left",
+        "idle_0",
+        "spin_right",
+        "idle_0"
+      ],
+      "fps": 6,
+      "repeat": -1
+    }
+  },
+  "note": "Rows are mutation colors; animations list frame names within one row. Tiers are drawn with integer scale (e.g. x3 / x4 / x5)."
+}

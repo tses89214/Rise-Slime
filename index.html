@@ -5,63 +5,121 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rise &amp; Slime</title>
 <style>
-  @font-face { font-family:m5x7; src:url(/assets/fonts/m5x7.ttf); }
-  @font-face { font-family:monogram; src:url(/assets/fonts/monogram.ttf); }
-  @font-face { font-family:kenpixel; src:url(/assets/fonts/kenpixel.ttf); }
-  :root { --bg:#1f2a3a; --panel:#2c3b52; --ink:#f3ecd8; --dim:#9fb0c8; --gold:#ffd25a; --warn:#ff7a59; --ok:#7ddc7a; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:32px/1.1 m5x7,monospace; cursor:url(/assets/ui/cursor.png) 0 0,auto; image-rendering:pixelated; }
-  main { max-width:900px; margin:0 auto; padding:16px; }
-  header { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; }
-  h1 { margin:0; font:32px kenpixel,m5x7,monospace; }
-  b, #coins, #income, .zone b { font-family:monogram,monospace; }
-  #coins { font-size:40px; color:var(--gold); }
-  #scene { margin:12px 0; padding:12px; background:#3f5a40 url(/assets/kenney-tiny-town/tile_0000.png) 0 0/64px 64px; image-rendering:pixelated; border:3px solid #223; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
-  .zone { position:relative; min-height:96px; word-break:break-all; text-shadow:0 1px 0 #000,0 0 3px #000; }
-  .zone small { display:block; color:var(--dim); }
-  .zone small.zzz { position:absolute; top:4px; right:6px; color:var(--ink); }
-  .slime { display:inline-block; width:64px; height:64px; margin:-14px -10px; background:url(/assets/slimes/blue.png) 0 -128px; animation:idle .9s steps(9) infinite; }
-  @keyframes idle { to { background-position:-576px -128px; } }
-  .customer { position:absolute; bottom:4px; left:-12%; width:32px; height:32px; z-index:1; animation:visit 20s linear infinite; }
-  /* walk in from the left, wander around the shop floor (30%-85%), turn, leave to the right */
-  @keyframes visit {
-    0%   { left:-12%; transform:translateY(0) scaleX(1); }
-    22%  { left:32%;  transform:translateY(0) scaleX(1); }
-    32%  { left:48%;  transform:translateY(-18px) scaleX(1); }
-    42%  { left:66%;  transform:translateY(-8px) scaleX(1); }
-    50%  { left:66%;  transform:translateY(-8px) scaleX(-1); }
-    60%  { left:44%;  transform:translateY(-22px) scaleX(-1); }
-    68%  { left:44%;  transform:translateY(-22px) scaleX(1); }
-    78%  { left:60%;  transform:translateY(-4px) scaleX(1); }
-    88%  { left:84%;  transform:translateY(0) scaleX(1); }
-    100% { left:112%; transform:translateY(0) scaleX(1); }
+  @font-face { font-family:m5x7; src:url(/fonts/m5x7.ttf); }
+  @font-face { font-family:monogram; src:url(/fonts/monogram.ttf); }
+  @font-face { font-family:kenpixel; src:url(/fonts/kenpixel.ttf); }
+  :root {
+    --bg:#EEF0FF; --panel:#FFFFFF; --ink:#1F2547; --ink2:#4A5078; --primary:#FF9EC4; --income:#C9F2E3;
+    --sky:#BFE3FF; --grass:#8EDB9A; --grass-line:#4FAF6A; --bar:#6FA8FF; --warn:#F08A24; --warn-line:#D9661A;
   }
-  .store { position:absolute; left:30%; right:12%; top:28px; bottom:0; background:url(/assets/kenney-tiny-town/tile_0003.png) 0 0/48px 48px; border:2px solid #223; opacity:.8; }
-  .zone.shop { position:relative; overflow:hidden; }
-  .zone.shop img.icon { width:32px; height:32px; vertical-align:middle; }
-  .zone.asleep .slime { opacity:.4; }
-  .zone small.zzz { display:none; }
-  .zone.asleep small.zzz { display:inline; }
-  #cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-  .card { background:var(--panel); border:3px solid #223; padding:12px; }
-  .card h2 { margin:0 0 6px; font-size:16px; }
-  .bar { height:10px; background:#17202d; margin:6px 0 10px; }
-  .bar i { display:block; height:100%; background:var(--ok); }
-  .bar.warn i { background:var(--warn); }
-  button { font:inherit; image-rendering:pixelated; color:var(--ink); background:#4a6285; border:2px solid #223; padding:6px 10px; cursor:pointer; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  .row { display:flex; gap:6px; align-items:center; margin-top:6px; }
-  #bottom { margin-top:12px; display:flex; justify-content:space-between; align-items:center; background:var(--panel); border:3px solid #223; padding:12px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.2 m5x7,monospace; image-rendering:pixelated; }
+  img, .spr { image-rendering:pixelated; }
+  h1, h2, .title { font-family:kenpixel,m5x7,monospace; margin:0; }
+  .num { font-family:monogram,monospace; }
+  main { max-width:1280px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+  .box { background:var(--panel); border:4px solid var(--ink); box-shadow:4px 4px 0 var(--ink); }
+
+  /* buttons: primary = pink, 3px frame, press = shadow gone + 4px down */
+  button { font:inherit; font-size:16px; color:var(--ink); background:var(--bg); border:3px solid var(--ink); min-height:44px; padding:6px 14px; cursor:pointer; }
+  button.primary { background:var(--primary); border-width:4px; box-shadow:4px 4px 0 var(--ink); font-size:32px; }
+  button.primary:active:not(:disabled) { box-shadow:0 0 0 var(--ink); transform:translate(4px,4px); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+
+  header { display:flex; align-items:center; flex-wrap:wrap; gap:16px 24px; padding:10px 18px; }
+  header h1 { font-size:32px; letter-spacing:1px; }
+  .coin { display:flex; align-items:center; gap:8px; }
+  #coins { font-size:32px; }
+  #income { background:var(--income); border:3px solid var(--ink); padding:4px 12px; font-size:16px; }
+  .spacer { margin-left:auto; display:flex; gap:10px; }
+
+  /* sprites: slimes.png 144x80 (9x5 of 16px), shown x3; items/props/customers/shop scaled by integers too */
+  .sprite { background-repeat:no-repeat; flex:none; }
+  .slime, .sleeper { display:inline-block; }
+  .slime { width:48px; height:48px; background-image:url(/original/slimes.png); background-size:432px 240px; background-position-y:calc(var(--row,0) * -48px); }
+  .a-idle { animation:idle 1s step-end infinite; }
+  .a-hop { animation:hop .5s step-end infinite; }
+  .a-sleep { animation:sleep 1.33s step-end infinite; }
+  .a-spin { animation:spin .67s step-end infinite; }
+  @keyframes idle { 0%{background-position-x:0} 75%{background-position-x:-48px} }
+  @keyframes hop { 0%{background-position-x:-96px} 20%{background-position-x:-144px} 40%{background-position-x:-192px} 60%{background-position-x:-144px} 80%{background-position-x:0} }
+  @keyframes sleep { 0%{background-position-x:-240px} 50%{background-position-x:-288px} }
+  @keyframes spin { 0%{background-position-x:-336px} 25%{background-position-x:0} 50%{background-position-x:-384px} 75%{background-position-x:0} }
+  .item { width:32px; height:32px; background-image:url(/original/items.png); background-size:160px 32px; }
+  .prop { width:96px; height:96px; background-image:url(/original/props.png); background-size:480px 96px; }
+
+  #scene { position:relative; height:330px; overflow:hidden; background:var(--sky) var(--sky-tile) 0 0/32px 32px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+  #scene .ground { position:absolute; inset:auto 0 0 0; height:110px; background:var(--grass) var(--grass-tile) 0 0/32px 32px; }
+  #scene .ground::before { content:""; position:absolute; inset:0 0 auto 0; height:32px; background:var(--grass-top-tile) 0 0/32px 32px repeat-x; }
+  .cloud { position:absolute; width:64px; height:64px; background:url(/original/props.png) -256px 0/320px 64px; animation:drift 60s linear infinite; }
+  @keyframes drift { from{transform:translateX(-80px)} to{transform:translateX(1400px)} }
+  .zone { position:relative; display:flex; flex-direction:column; align-items:center; padding-top:14px; }
+  .zone + .zone::before { content:""; position:absolute; left:-16px; bottom:78px; width:32px; height:32px; background:var(--fence-tile) 0 0/32px 32px; }
+  .zone .label { background:var(--panel); border:3px solid var(--ink); padding:2px 10px; font-size:16px; font-family:kenpixel,monospace; z-index:2; }
+  .zone .actors { position:absolute; bottom:24px; display:flex; gap:0; align-items:flex-end; flex-wrap:wrap; justify-content:center; max-width:100%; z-index:1; }
+  .zone .actors .more { font:16px monogram,monospace; background:var(--panel); border:3px solid var(--ink); padding:0 6px; align-self:center; }
+  .sleeper { position:relative; }
+  .zzz { position:absolute; left:20px; top:-10px; animation:float 2.4s linear infinite; }
+  @keyframes float { 0%{opacity:0;transform:translateY(0)} 40%{opacity:1} 100%{opacity:0;transform:translateY(-16px)} }
+  .props { position:absolute; bottom:86px; display:flex; align-items:flex-end; gap:8px; z-index:0; }
+  .wheat { animation:pop 1.2s steps(3) infinite; }
+  @keyframes pop { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .millstone { animation:turn 4s steps(4) infinite; }
+  @keyframes turn { to { transform:rotate(360deg); } } /* 90deg steps only: other angles resample the pixels and shimmer */
+  .oven-baking { animation:oven 1s step-end infinite; }
+  @keyframes oven { 0%{background-position-x:-96px} 50%{background-position-x:-192px} }
+  .shop-img { width:192px; height:144px; background:url(/original/shop.png) 0 0/192px 144px; position:absolute; bottom:86px; right:0; }
+  .cust { position:absolute; bottom:70px; left:100%; width:48px; height:48px; background:url(/original/customers.png) 0 calc(var(--row,0) * -48px)/96px 192px; animation:step .5s step-end infinite, approach 9s linear infinite; z-index:1; }
+  @keyframes step { 0%{background-position-x:0} 50%{background-position-x:-48px} }
+  @keyframes approach { 0%{left:100%;opacity:1} 80%{left:64%;opacity:1} 81%,100%{left:64%;opacity:0} }
+  .float { position:absolute; font:32px monogram,monospace; color:var(--ink); animation:rise 1.1s linear forwards; z-index:3; display:flex; align-items:center; }
+  @keyframes rise { from{transform:translateY(0);opacity:1} to{transform:translateY(-48px);opacity:0} }
+
+  #stations { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+  .card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+  .card.warn { border-color:var(--warn-line); }
+  .card .top { display:flex; justify-content:space-between; align-items:baseline; }
+  .card h2 { font-size:32px; }
+  .card .row { display:flex; justify-content:space-between; color:var(--ink2); }
+  .bar { height:14px; background:#E1E5F7; border:3px solid var(--ink); }
+  .bar i { display:block; height:100%; background:var(--bar); }
+  .card.warn .bar i { background:var(--warn); }
+  .card .btns { display:flex; gap:8px; margin-top:4px; }
+  .card .btns button { width:48px; padding:0; font-size:32px; }
+  .card .btns .primary { flex:1; width:auto; font-size:16px; border-width:3px; box-shadow:none; }
+
+  #bottom { display:flex; gap:16px; flex-wrap:wrap; }
+  #lounge { flex:1; min-width:260px; padding:10px 16px; display:flex; align-items:center; gap:20px; }
+  #lounge .slimes { margin-left:auto; display:flex; align-items:flex-end; }
+  #buy { width:300px; max-width:100%; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:kenpixel,monospace; }
+  #buy small { font:16px m5x7,monospace; }
+  dialog { border:4px solid var(--ink); background:var(--panel); color:var(--ink); max-width:560px; font-size:16px; line-height:1.4; }
+  dialog::backdrop { background:rgba(31,37,71,.5); }
 </style>
 </head>
 <body>
 <main>
-  <header><h1>Rise &amp; Slime</h1><div><span id="coins">0</span> Coins · <span id="income">0</span>/sec</div></header>
-  <div id="scene"></div>
-  <div id="cards"></div>
-  <div id="bottom"><div>Lounge: <b id="lounge">0</b> waiting</div><button id="buy">Buy Slime</button> <button id="mute">Music: off</button></div>
-  <p style="color:var(--dim);font-size:20px">Slime art by GreenRangerPIX (CC BY 4.0). Other art, fonts and audio: Kenney, Clint Bellanger, Daniel Linssen, Vinícius Menézio, cosmac, congusbongus, MatiasVME and more, mostly CC0. Full list in CREDITS.md.</p>
+  <header class="box">
+    <h1>RISE &amp; SLIME</h1>
+    <div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b><span style="color:var(--ink2)">coins</span></div>
+    <div id="income" class="num">+0 / sec</div>
+    <div class="spacer"><button id="music">Music</button><button id="sfx">SFX</button><button id="settings">Settings</button></div>
+  </header>
+  <section id="scene" class="box" aria-label="Bakery scene"></section>
+  <section id="stations"></section>
+  <section id="bottom">
+    <div id="lounge" class="box"><div><h2 style="font-size:32px">LOUNGE</h2><div style="color:var(--ink2)">New slimes wait here. Tap + on a station to assign.</div></div><div class="slimes" id="lounge-slimes"></div></div>
+    <button id="buy" class="primary"><span>BUY SLIME</span><small id="buy-cost"></small></button>
+  </section>
 </main>
+<dialog id="credits">
+  <h2>Credits</h2>
+  <p>Original art and code: Po (code MIT).</p>
+  <p>Fonts: m5x7 (Daniel Linssen), monogram (Vinícius Menézio), Kenney Fonts (Kenney), all CC0.</p>
+  <p>Music: 8 Bit Concentration Loop (cosmac), Chiptune Loops (MatiasVME), Cunning plan (congusbongus), all CC0.</p>
+  <p>Sound effects: Interface Sounds (Kenney), 10 8bit coin sounds (Luke.RUSTLTD), 25 CC0 mud sfx (rubberduck), all CC0.</p>
+  <form method="dialog"><button>Close</button></form>
+</dialog>
 <script type="module" src="/src/game/main.ts"></script>
 </body>
 </html>
