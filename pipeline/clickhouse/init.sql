@@ -83,12 +83,23 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_pipeline_1m_mv TO slime.pipel
 SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, event_type, events, avg_latency_ms, max_latency_ms
 FROM slime.kafka_pipeline_1m;
 
--- From the events.dlq topic: error rate = dead_letters / (events + dead_letters).
+-- Rejected events. Read straight from the collector's events.dlq topic (nothing to compute, so no Flink job).
+-- error rate = dead_letters / (events + dead_letters). raw is the original JSON as text.
 CREATE TABLE IF NOT EXISTS slime.dead_letters (
     received_at DateTime64(3, 'UTC'),
     error       String,
     raw         String
 ) ENGINE = MergeTree ORDER BY received_at;
+
+CREATE TABLE IF NOT EXISTS slime.kafka_dead_letters (
+    raw String, error String, ingested_at String
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'events.dlq',
+    kafka_group_name = 'clickhouse-dlq', kafka_format = 'JSONEachRow', kafka_num_consumers = 1,
+    input_format_json_read_objects_as_strings = 1;   -- raw is a JSON object (or anything); keep it as text
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_dead_letters_mv TO slime.dead_letters AS
+SELECT parseDateTime64BestEffort(ingested_at, 3, 'UTC') AS received_at, error, raw
+FROM slime.kafka_dead_letters;
 
 -- ---- Live ops: "how is the game doing right now" ----
 
