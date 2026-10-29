@@ -1,4 +1,4 @@
-# Two-node Kafka (KRaft, no ZooKeeper) + ClickHouse. Flink arrives next.
+# Two-node Kafka (KRaft, no ZooKeeper) + ClickHouse + Flink.
 #   kafka  = broker + controller   kafka2 = broker only (demo: scaling out, replication)
 # Listener labels: WEB_GAME = clients on your machine, DOCKER = other containers, CONTROLLER = cluster internal.
 x-kafka-common: &kafka-common
@@ -59,6 +59,34 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - ./pipeline/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # runs on first start only
     ulimits: {nofile: {soft: 262144, hard: 262144}}
+
+  # Flink UI at http://localhost:8081. Job = pipeline/flink/job.sql, submitted by flink-sql below.
+  flink-jobmanager:
+    build: pipeline/flink
+    command: jobmanager
+    ports: ["8081:8081"]
+    environment: &flink-env
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 2
+    depends_on: [kafka, kafka2]
+
+  flink-taskmanager:
+    build: pipeline/flink
+    command: taskmanager
+    environment: *flink-env
+    depends_on: [flink-jobmanager]
+
+  # one-shot: runs job.sql, leaves the streaming job running on the cluster, then exits. Re-run after editing job.sql.
+  flink-sql:
+    build: pipeline/flink
+    profiles: ["submit"]
+    command: /opt/flink/bin/sql-client.sh -f /job/job.sql
+    environment: *flink-env
+    volumes: ["./pipeline/flink/job.sql:/job/job.sql:ro"]
+    depends_on: [flink-jobmanager, flink-taskmanager]
 
 volumes:
   clickhouse-data:
