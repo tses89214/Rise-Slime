@@ -7,6 +7,11 @@ const producer = brokers ? new Kafka({ clientId: 'collector', brokers }).produce
 await producer?.connect();
 
 const app = Fastify();
+// The browser game posts cross-origin (vite :5173 -> :3000) with a JSON content-type, which triggers a preflight.
+app.addHook('onRequest', async (req, reply) => {
+  reply.header('access-control-allow-origin', '*').header('access-control-allow-headers', 'content-type');
+  if (req.method === 'OPTIONS') return reply.code(204).send();
+});
 app.post('/events', async (req, reply) => {
   const m = route(req.body, Date.now());
   const msg = { key: m.key, value: JSON.stringify(m.value) };

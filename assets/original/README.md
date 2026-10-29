@@ -12,10 +12,10 @@ python3 tools/sprites/make_preview.py assets/original assets/original/preview
 | 檔案 | 格子大小 | 內容 |
 | --- | --- | --- |
 | `slimes.png` | 16×16 | 5 列 = 5 種顏色（normal、leafy、rocky、fiery、lucky），9 欄 = 9 個動作格 |
-| `customers.png` | 16×16 | 4 列 = 4 種客人（pink、purple、teal、lime），2 欄 = 走路 2 格 |
+| `customers.png` | 16×16 | 4 列 = 4 種客人（pink、purple、teal、lime），走路與抱麵包的格子（見 JSON） |
 | `items.png` | 16×16 | wheat、flour、bread、coin、zzz、note（音樂開關）、speaker（音效開關）、star（成就） |
 | `tiles.png` | 16×16 | sky、grass_top、grass、fence |
-| `props.png` | 32×32 | millstone、oven、oven_lit、sacks、cloud |
+| `props.png` | 32×32 | windmill、blades_0/22/45/68（風車葉 4 個角度）、oven、oven_lit、oven_lit_dim、cloud |
 | `shop.png` | 64×48 | 店舖外觀（單張） |
 
 ## 史萊姆動作格與動畫
