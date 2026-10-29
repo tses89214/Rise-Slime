@@ -50,11 +50,25 @@ Spec is written in Traditional Chinese; UI text and event/code names are English
 
 ```
 npm install
-npm test                       # vitest run
-npx vitest run -t "4:6:5"      # single test by name
+npm test                         # vitest run
+npx vitest run -t "4:6:5"        # single test by name
 npm run typecheck
+npm run dev                      # browser game (telemetry off)
+VITE_TELEMETRY=true npm run dev  # browser game, events -> VITE_COLLECTOR_URL (default localhost:3000/events)
+npm run build                    # itch.io build: no event-sending code
+docker compose up -d             # single-node Kafka
+KAFKA_BROKERS=localhost:9092 npm run collector   # unset KAFKA_BROKERS = print to stdout
+npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # or --out file.jsonl; --speed 60 for real-time pacing
 ```
+
+## Layout
+
+- `src/core/sim.ts` — pure simulation (stations, costs, offline progress, seeded `rng`). No clock, no `Math.random`.
+- `src/events/` — zod `GameEvent` schema (single source of truth) + `makeEmitter` (stamps shared fields, UUID v7; caller passes `now`).
+- `src/bots/` — `runBot` (personas: random_assigner, optimizer, quitter) and CLI with duplicate/malformed fault injection.
+- `src/collector/` — Fastify `POST /events`; `route()` sends invalid events to `events.dlq`.
+- `src/game/main.ts` + `index.html` — plain DOM UI (no Phaser/assets yet), localStorage save + offline progress.
 
 ## Repo state
 
-Implemented so far: `src/core/sim.ts`, the M1 production-chain simulation (pure, time passed in). Not yet: seeded RNG, events/zod package, Phaser UI, bots, collector, Kafka/Flink/ClickHouse stack.
+M1 first version done except: Phaser scene/art/audio, bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2). Slot caps and the Manager Slime are not in M1 scope.

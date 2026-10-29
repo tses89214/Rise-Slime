@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rise &amp; Slime</title>
+<style>
+  :root { --bg:#1f2a3a; --panel:#2c3b52; --ink:#f3ecd8; --dim:#9fb0c8; --gold:#ffd25a; --warn:#ff7a59; --ok:#7ddc7a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 ui-monospace,Menlo,monospace; }
+  main { max-width:900px; margin:0 auto; padding:16px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; }
+  h1 { margin:0; font-size:20px; }
+  #coins { font-size:32px; color:var(--gold); }
+  #scene { margin:12px 0; padding:12px; background:#3f5a40; border:3px solid #223; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+  .zone { min-height:64px; word-break:break-all; }
+  .zone small { display:block; color:var(--dim); }
+  .slime { display:inline-block; width:14px; height:12px; margin:1px; background:#5fb3ff; border-radius:7px 7px 2px 2px; }
+  .slime.asleep { opacity:.4; }
+  #cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  .card { background:var(--panel); border:3px solid #223; padding:12px; }
+  .card h2 { margin:0 0 6px; font-size:16px; }
+  .bar { height:10px; background:#17202d; margin:6px 0 10px; }
+  .bar i { display:block; height:100%; background:var(--ok); }
+  .bar.warn i { background:var(--warn); }
+  button { font:inherit; color:var(--ink); background:#4a6285; border:2px solid #223; padding:6px 10px; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .row { display:flex; gap:6px; align-items:center; margin-top:6px; }
+  #bottom { margin-top:12px; display:flex; justify-content:space-between; align-items:center; background:var(--panel); border:3px solid #223; padding:12px; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>Rise &amp; Slime</h1><div><span id="coins">0</span> Coins · <span id="income">0</span>/sec</div></header>
+  <div id="scene"></div>
+  <div id="cards"></div>
+  <div id="bottom"><div>Lounge: <b id="lounge">0</b> waiting</div><button id="buy">Buy Slime</button></div>
+</main>
+<script type="module" src="/src/game/main.ts"></script>
+</body>
+</html>
