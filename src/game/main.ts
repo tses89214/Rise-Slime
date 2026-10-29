@@ -92,7 +92,8 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 });
 
 syncMusic();
-let lastScene = '';
+$('scene').innerHTML = [['farm', 'Farm'], ['mill', 'Mill'], ['bakery', 'Bakery']].map(([id, label]) => `<div class="zone" id="zone-${id}"><small>${label}</small><small class="zzz">Zzz</small><div id="slimes-${id}"></div></div>`).join('')
+  + `<div class="zone shop"><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
 let rate = 0, lastCoins = s.bread * 10, lastRateAt = performance.now();
 function render() {
   $('coins').textContent = fmt(s.coins);
@@ -114,13 +115,16 @@ function render() {
     (document.querySelector(`[data-plus="${id}"]`) as HTMLButtonElement).disabled = count(s, null) === 0;
     (document.querySelector(`[data-minus="${id}"]`) as HTMLButtonElement).disabled = n === 0;
   }
-  const zone = (label: string, id: StationId) => {
-    const asleep = id !== 'farm' && s.stations[id].stock < (id === 'mill' ? 2 : 2);
-    return `<div class="zone"><small>${label}</small>${Array.from({ length: Math.min(8, count(s, id)) }, () => `<span class="slime${asleep ? ' asleep' : ''}"></span>`).join('')}${count(s, id) > 8 ? ` +${count(s, id) - 8}` : ''}${asleep && count(s, id) ? '<small class="zzz">Zzz</small>' : ''}</div>`;
-  };
-  const html = zone('Farm', 'farm') + zone('Mill', 'mill') + zone('Bakery', 'bakery') + `<div class="zone shop"><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
-  if (html !== lastScene) { lastScene = html; $('scene').innerHTML = html; }
-  $('bread').textContent = fmt(s.bread); // only touch the DOM on change, or animations restart
+  for (const id of STATIONS) {
+    const n = count(s, id), z = $(`zone-${id}`);
+    const asleep = id !== 'farm' && n > 0 && s.stations[id].stock < 2;
+    z.classList.toggle('asleep', asleep);
+    if (z.dataset.n !== String(n)) { // rebuild slimes only when the count changes, so animations keep running
+      z.dataset.n = String(n);
+      $(`slimes-${id}`).innerHTML = '<span class="slime"></span>'.repeat(Math.min(8, n)) + (n > 8 ? ` +${n - 8}` : '');
+    }
+  }
+  $('bread').textContent = fmt(s.bread);
 }
 
 // --- loop: fixed 0.1s steps, 5s production_tick, autosave ---
