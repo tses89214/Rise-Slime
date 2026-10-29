@@ -8,7 +8,7 @@ const RECIPE = {
   bakery: { seconds: 5, input: 2 },
 } as const;
 const BREAD_PRICE = 10;
-// Queue thresholds (items waiting at a station): the UI colours, sweating, Help text and achievements all read these.
+// Queue thresholds (items waiting at a station): the UI colours, Help text and achievements all read these.
 export const QUEUE = { starved: 2, busy: 50, backed: 100, jam: 200 } as const; // below `starved` a station can't start a cycle
 export const OFFLINE_CAP_SECONDS = 8 * 3600;
 

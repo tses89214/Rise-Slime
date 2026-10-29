@@ -22,7 +22,7 @@ const toast = (text: string) => {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 };
-const setAchLabel = () => { $('ach').innerHTML = `<span class="long">Achievements</span><span class="short"><span class="item sprite" style="background-position:-256px 0"></span></span> ${s.achievements.length}/${ACHIEVEMENTS.length}`; };
+const setAchLabel = () => { $('ach').innerHTML = `<span class="long">Achievements</span><span class="short"><span class="item sprite" style="background-position:-224px 0"></span></span> ${s.achievements.length}/${ACHIEVEMENTS.length}`; };
 const renderAchievements = () => {
   $('ach-count').textContent = `${s.achievements.length}/${ACHIEVEMENTS.length}`;
   $('ach-list').innerHTML = ACHIEVEMENTS.map((a) => {
@@ -149,11 +149,11 @@ const keys = new Map<string, string>();
 const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !== key) { keys.set(id, key); el(id).innerHTML = html; } };
 // colour follows the job: lounge blue, farm green (leafy), mill brown (rocky), bakery red (fiery); cosmetic in M1
 const ROW: Record<string, number> = { lounge: 0, farm: 1, mill: 2, bakery: 3 };
-const slimeEl = (sl: Slime, anim: string, i: number, zzz = false, sweat = false) =>
-  `<span class="${zzz || sweat ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}${sweat ? `<span class="sweat" style="left:2px;animation-delay:-${((i * 0.37) % 0.9).toFixed(2)}s">${item(5)}</span><span class="sweat" style="right:2px;animation-delay:-${((i * 0.37 + 0.45) % 0.9).toFixed(2)}s">${item(5)}</span>` : ''}</span>`;
-const crowd = (list: Slime[], anim: string, zzz = false, sweat = false) =>
-  list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz, sweat)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
-const keyOf = (list: Slime[], anim: string, sweat = false) => `${anim}${sweat ? '+sweat' : ''}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
+const slimeEl = (sl: Slime, anim: string, i: number, zzz = false) =>
+  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
+const crowd = (list: Slime[], anim: string, zzz = false) =>
+  list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
+const keyOf = (list: Slime[], anim: string) => `${anim}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
 
 const lastMade = Object.fromEntries(STATIONS.map((id) => [id, s.stations[id].made ?? 0])) as Record<StationId, number>;
 const ITEM_OF: Record<StationId, number> = { farm: 0, mill: 1, bakery: 2 }; // wheat, flour, bread sprites in items.png
@@ -184,7 +184,6 @@ function render() {
   for (const id of STATIONS) {
     const list = by[id], n = list.length, st = s.stations[id], u = ui.st[id], stock = Math.floor(st.stock);
     const starved = id !== 'farm' && n > 0 && st.stock < QUEUE.starved;
-    const backed = id !== 'farm' && st.stock >= QUEUE.backed;
     const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= QUEUE.jam ? 'jam' : st.stock >= QUEUE.backed ? 'warn' : st.stock >= QUEUE.busy ? 'busy' : n === 0 && st.stock >= QUEUE.starved ? 'warn' : 'ok';
     const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
     setText(u.n, String(n));
@@ -201,7 +200,7 @@ function render() {
     u.plus.disabled = by.lounge.length === 0;
     u.minus.disabled = n === 0;
     const anim = starved ? 'sleep' : id === 'mill' ? 'spin' : 'hop';
-    setHtml(`actors-${id}`, keyOf(list, anim, backed), crowd(list, anim, starved, backed)); // backed up = swamped: sweating
+    setHtml(`actors-${id}`, keyOf(list, anim), crowd(list, anim, starved));
   }
   // blades turn and the oven glows only while the station has input to work on
   ui.windmill.classList.toggle('working', s.stations.mill.stock >= QUEUE.starved && by.mill.length > 0);

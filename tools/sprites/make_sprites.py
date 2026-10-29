@@ -227,18 +227,6 @@ def item_zzz():
     return img
 
 
-def item_sweat():
-    """A sweat drop: slimes show it when their queue is piling up."""
-    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    drop, edge, light = hx("#6FC3FF"), hx("#3F8FD6"), hx("#E3F4FF")
-    d.polygon([(8, 1), (5, 7), (11, 7)], fill=drop)
-    d.ellipse([4, 6, 11, 13], fill=drop, outline=edge)
-    d.point((6, 9), fill=light)
-    d.point((6, 10), fill=light)
-    return img
-
-
 def item_note():
     """Beamed eighth notes: the music toggle."""
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
@@ -278,7 +266,7 @@ def item_star():
     return img
 
 
-ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz(), "sweat": item_sweat(), "note": item_note(), "speaker": item_speaker(), "star": item_star()}
+ITEMS = {"wheat": item_wheat(), "flour": item_flour(), "bread": item_bread(), "coin": item_coin(), "zzz": item_zzz(), "note": item_note(), "speaker": item_speaker(), "star": item_star()}
 items_row = [list(ITEMS.values())]
 sheet(items_row, 16, 16).save(OUT / "items.png")
 (OUT / "items.json").write_text(json.dumps(atlas("items", items_row, [""], list(ITEMS), 16, 16), indent=2))
