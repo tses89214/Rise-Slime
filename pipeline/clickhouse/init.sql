@@ -70,8 +70,18 @@ CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
     duplicates     UInt64 DEFAULT 0,
     late           UInt64 DEFAULT 0,
     avg_latency_ms Float64,
-    max_latency_ms UInt64
+    max_latency_ms Int64     -- can be negative: bots in fast-forward stamp event_time ahead of ingestion
 ) ENGINE = MergeTree ORDER BY (window_start, event_type);
+
+CREATE TABLE IF NOT EXISTS slime.kafka_pipeline_1m (
+    window_start String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.pipeline_1m',
+    kafka_group_name = 'clickhouse-pipeline-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_pipeline_1m_mv TO slime.pipeline_1m
+    (window_start DateTime('UTC'), event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, event_type, events, avg_latency_ms, max_latency_ms
+FROM slime.kafka_pipeline_1m;
 
 -- From the events.dlq topic: error rate = dead_letters / (events + dead_letters).
 CREATE TABLE IF NOT EXISTS slime.dead_letters (
@@ -98,6 +108,17 @@ CREATE TABLE IF NOT EXISTS slime.ops_1m (
     bread_sold            UInt64,
     coins_earned          UInt64
 ) ENGINE = MergeTree ORDER BY (window_start, client);
+
+CREATE TABLE IF NOT EXISTS slime.kafka_ops_1m (
+    window_start String, client String, active_players UInt32, new_players UInt32, sessions_started UInt32,
+    sessions_ended UInt32, avg_session_seconds Float64, slimes_purchased UInt32, station_upgrades UInt32,
+    achievements_unlocked UInt32, bread_sold UInt64, coins_earned UInt64
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.ops_1m',
+    kafka_group_name = 'clickhouse-ops-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_ops_1m_mv TO slime.ops_1m AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, * EXCEPT window_start
+FROM slime.kafka_ops_1m;
 
 -- Latest state per player, for the leaderboard. Fed by a materialized view on `events`, not by Flink.
 -- Every column merges idempotently (max / min / argMax by event_time), so duplicate or re-ordered events change nothing.
