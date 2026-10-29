@@ -11,7 +11,9 @@ const OUT: Record<StationId, string> = { farm: 'wheat', mill: 'flour', bakery: '
 const IN: Record<StationId, string> = { farm: '', mill: 'wheat', bakery: 'flour' };
 const SECONDS = { farm: 1, mill: 3, bakery: 5 };
 const CUSTOMERS = 7;
-const MAX_DRAWN = 10; // per zone: 5 per row, 2 rows; the rest shows as "+N"
+const MAX_DRAWN = 10;
+const barPct = (stock: number) => Math.min(100, (100 * Math.log10(1 + stock)) / Math.log10(201)); // log scale: 200 queued fills the bar
+const TICKS = [10, 20, 50]; // where the queue turns busy / backing up / jammed // per zone: 5 per row, 2 rows; the rest shows as "+N"
 
 // --- achievements ---
 const toast = (text: string) => {
@@ -28,6 +30,7 @@ const renderAchievements = () => {
     return `<li class="${got ? '' : 'locked'}"><b>${a.name}</b>${got ? '' : ' (locked)'}<small>${a.desc}</small></li>`;
   }).join('');
 };
+$('help').onclick = () => ($('helpdlg') as HTMLDialogElement).showModal();
 $('ach').onclick = () => { renderAchievements(); ($('achievements') as HTMLDialogElement).showModal(); };
 
 // --- state ---
@@ -56,6 +59,9 @@ if (demo) {
   for (let i = 0; i < l; i++) buySlime(s);
   s.coins = 20;
 }
+
+const openDlg = import.meta.env.DEV ? new URLSearchParams(location.search).get('open') : null; // dev only: ?open=helpdlg for screenshots
+if (openDlg) ($(openDlg) as HTMLDialogElement).showModal();
 
 const t0 = Date.now();
 emit?.('session_start', t0, { offline_seconds: offlineSeconds, is_new_player: isNew });
@@ -97,7 +103,7 @@ $('stations').innerHTML = STATIONS.map((id) => `
     <div class="top"><h2>${NAME[id]}</h2><span><b class="num" id="${id}-n"></b> slimes · Lv <b class="num" id="${id}-lv"></b></span></div>
     <div id="${id}-rate"></div>
     <div class="row"><span id="${id}-ql"></span><b id="${id}-qn"></b></div>
-    <div class="bar"><i id="${id}-bar"></i></div>
+    <div class="bar"><i id="${id}-bar"></i>${id === 'farm' ? '' : TICKS.map((n) => `<b style="left:${barPct(n)}%"></b>`).join('')}</div>
     <div class="btns">
       <button data-minus="${id}" aria-label="Move one slime back to the lounge">−</button>
       <button data-plus="${id}" aria-label="Assign one slime from the lounge">+</button>
@@ -178,14 +184,16 @@ function render() {
     const list = by[id], n = list.length, st = s.stations[id], u = ui.st[id], stock = Math.floor(st.stock);
     const starved = id !== 'farm' && n > 0 && st.stock < 2;
     const backed = id !== 'farm' && st.stock > 20;
+    const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= 50 ? 'jam' : st.stock >= 20 ? 'warn' : st.stock >= 10 ? 'busy' : n === 0 && st.stock >= 2 ? 'warn' : 'ok';
+    const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
     setText(u.n, String(n));
     setText(u.lv, String(st.level));
     setText(u.rate, `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]} / sec`);
     setText(u.ql, id === 'farm' ? 'Queue' : `Queue: ${stock} ${IN[id]}`);
-    setText(u.qn, id === 'farm' ? '—' : backed ? 'Backing up!' : starved ? 'Starved' : '');
-    const w = id === 'farm' ? '0%' : `${Math.min(100, st.stock * 2).toFixed(0)}%`;
+    setText(u.qn, note);
+    const w = id === 'farm' ? '0%' : `${barPct(st.stock).toFixed(0)}%`;
     if (u.bar.style.width !== w) u.bar.style.width = w;
-    u.card.classList.toggle('warn', backed);
+    if (u.card.dataset.q !== q) u.card.dataset.q = q;
     const upCost = upgradeCost(s, id);
     setText(u.up, `Upgrade · ${fmt(upCost)}`);
     u.up.disabled = s.coins < upCost;

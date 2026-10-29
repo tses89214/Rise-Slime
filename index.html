@@ -107,9 +107,17 @@
   .card .top { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0 12px; }
   .card h2 { font-size:40px; }
   .card .row { display:flex; justify-content:space-between; color:var(--ink2); }
-  .bar { height:14px; background:#E1E5F7; border:3px solid var(--ink); }
-  .bar i { display:block; height:100%; background:var(--bar); }
-  .card.warn .bar i { background:var(--warn); }
+  /* queue bar: grey starved < 2 <= blue ok < 10 <= yellow busy < 20 <= orange backing up < 50 <= red jammed. Length is logarithmic; ticks mark 10 / 20 / 50. */
+  .bar { position:relative; height:14px; background:#E1E5F7; border:3px solid var(--ink); }
+  .bar i { display:block; height:100%; background:var(--bar); transition:width .3s steps(6); }
+  .bar b { position:absolute; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:var(--ink); opacity:.5; }
+  .card[data-q=starved] .bar i { background:#B7BEDD; }
+  .card[data-q=busy] .bar i { background:#F5C342; }
+  .card[data-q=warn] .bar i { background:var(--warn); }
+  .card[data-q=jam] .bar i { background:#E2604A; animation:jam .6s steps(1) infinite; }
+  @keyframes jam { 50% { background:#B83A2E; } }
+  .card[data-q=warn], .card[data-q=jam] { border-color:var(--warn-line); }
+  .card[data-q=jam] { border-color:#B83A2E; }
   .card .btns { display:flex; gap:8px; margin-top:4px; }
   .card .btns button { width:48px; padding:0; font-size:40px; }
   .card .btns .primary { flex:1; width:auto; font-size:32px; border-width:3px; box-shadow:none; }
@@ -125,7 +133,12 @@
   #ach-list li { border:3px solid var(--ink); padding:4px 10px; background:var(--income); }
   #ach-list li.locked { background:#E1E5F7; color:var(--ink2); }
   #ach-list small { display:block; font-size:24px; }
-  dialog { border:4px solid var(--ink); background:var(--panel); color:var(--ink); max-width:560px; font-size:32px; line-height:1.2; }
+  .sw { display:inline-block; width:24px; height:12px; border:3px solid var(--ink); margin-right:8px; vertical-align:middle; }
+  #helpdlg h2 { margin-top:12px; font-size:32px; }
+  #helpdlg p, #helpdlg li { margin:4px 0; }
+  #helpdlg ul { margin:4px 0; padding-left:24px; }
+  #helpdlg .item { display:inline-block; vertical-align:middle; margin:-6px 0; }
+  dialog { max-height:90vh; overflow:auto; border:4px solid var(--ink); background:var(--panel); color:var(--ink); max-width:560px; font-size:32px; line-height:1.2; }
   dialog::backdrop { background:rgba(31,37,71,.5); }
 </style>
 </head>
@@ -135,7 +148,7 @@
     <h1>RISE &amp; SLIME</h1>
     <div class="coin"><span class="item" style="background-position:-96px 0"></span><b id="coins" class="num">0</b><span style="color:var(--ink2)">coins</span></div>
     <div id="income" class="num">+0 / sec</div>
-    <div class="spacer"><button id="ach"></button><button id="music">Music</button><button id="sfx">SFX</button><button id="settings">Settings</button></div>
+    <div class="spacer"><button id="ach"></button><button id="help">Help</button><button id="music">Music</button><button id="sfx">SFX</button><button id="settings">Settings</button></div>
   </header>
   <section id="scene" class="box" aria-label="Bakery scene"></section>
   <section id="stations"></section>
@@ -146,6 +159,30 @@
 </main>
 <div id="toast" role="status"></div>
 <dialog id="achievements"><h2>Achievements <span id="ach-count" class="num"></span></h2><ul id="ach-list"></ul><form method="dialog"><button>Close</button></form></dialog>
+<dialog id="helpdlg">
+  <form method="dialog" style="float:right"><button>Close</button></form>
+  <h1 style="font-size:40px">How to play</h1>
+  <p>Slimes work at the stations. Tap <b>+</b> on a station to send a slime over from the Lounge, <b>&minus;</b> to send one back. <b>Buy Slime</b> brings new ones to the Lounge. <b>Upgrade</b> makes a station faster.</p>
+  <h2>The chain</h2>
+  <ul>
+    <li><b>Farm</b>: each slime makes 1 <span class="item sprite" style="background-position:0 0"></span> wheat every 1s.</li>
+    <li><b>Mill</b>: each slime turns 2 <span class="item sprite" style="background-position:0 0"></span> wheat into 1 <span class="item sprite" style="background-position:-32px 0"></span> flour every 3s.</li>
+    <li><b>Bakery</b>: each slime turns 2 <span class="item sprite" style="background-position:-32px 0"></span> flour into 1 <span class="item sprite" style="background-position:-64px 0"></span> bread every 5s.</li>
+    <li><b>Shop</b>: every bread sells for 10 <span class="item sprite" style="background-position:-96px 0"></span> coins.</li>
+  </ul>
+  <p>A slime only starts a job when its ingredients are on hand, so each station needs the one before it to keep up. Tip: a 4 : 6 : 5 split keeps all three busy.</p>
+  <h2>Upgrades</h2>
+  <p>Each level makes a station 10% faster. Levels 10, 25 and 50 double its speed on top of that.</p>
+  <h2>Queue bar</h2>
+  <p>It shows how much of the previous product is waiting at a station (the ticks mark 10, 20 and 50).</p>
+  <ul>
+    <li><i class="sw" style="background:#B7BEDD"></i>Starved: nothing to work on. The slimes sleep.</li>
+    <li><i class="sw" style="background:#6FA8FF"></i>Fine: under 10 waiting.</li>
+    <li><i class="sw" style="background:#F5C342"></i>Getting busy: 10 or more.</li>
+    <li><i class="sw" style="background:#F08A24"></i>Backing up: 20 or more. The slimes sweat; add workers or upgrade.</li>
+    <li><i class="sw" style="background:#E2604A"></i>Jammed: 50 or more.</li>
+  </ul>
+</dialog>
 <dialog id="credits">
   <h2>Credits</h2>
   <p>Original art and code: Po (code MIT).</p>
