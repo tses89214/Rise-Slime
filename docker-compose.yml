@@ -1,19 +1,44 @@
-# M1: single-node Kafka (KRaft, no ZooKeeper). Flink/ClickHouse arrive in M2.
+# M1: two-node Kafka (KRaft, no ZooKeeper). Flink/ClickHouse arrive in M2.
+#   kafka  = broker + controller   kafka2 = broker only (demo: scaling out, replication)
+# Listener labels: WEB_GAME = clients on your machine, DOCKER = other containers, CONTROLLER = cluster internal.
+x-kafka-common: &kafka-common
+  image: apache/kafka:3.8.0
+  environment: &kafka-env
+    CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk   # all nodes must share one id
+    KAFKA_LOG_DIRS: /var/lib/kafka/data   # image default is /tmp, which a volume mount would not cover
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,WEB_GAME:PLAINTEXT,DOCKER:PLAINTEXT
+    KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+    KAFKA_DEFAULT_REPLICATION_FACTOR: 2   # topics auto-created by the collector get a copy on both nodes
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
 services:
   kafka:
-    image: apache/kafka:3.8.0
+    <<: *kafka-common
     ports: ["9092:9092"]
+    volumes: ["kafka-data:/var/lib/kafka/data"]
     environment:
+      <<: *kafka-env
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: WEB_GAME://:9092,DOCKER://:29092,CONTROLLER://:9093
       KAFKA_ADVERTISED_LISTENERS: WEB_GAME://localhost:9092,DOCKER://kafka:29092
-      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,WEB_GAME:PLAINTEXT,DOCKER:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka2:
+    <<: *kafka-common
+    ports: ["9094:9094"]
+    volumes: ["kafka2-data:/var/lib/kafka/data"]
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker   # no controller: it asks node 1 for metadata
+      KAFKA_LISTENERS: WEB_GAME://:9094,DOCKER://:29092
+      KAFKA_ADVERTISED_LISTENERS: WEB_GAME://localhost:9094,DOCKER://kafka2:29092
+    depends_on: [kafka]
 
   # browse topics/messages at http://localhost:8080
   kafka-ui:
@@ -21,5 +46,9 @@ services:
     ports: ["8080:8080"]
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    depends_on: [kafka]
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092,kafka2:29092
+    depends_on: [kafka, kafka2]
+
+volumes:
+  kafka-data:
+  kafka2-data:

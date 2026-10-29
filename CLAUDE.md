@@ -59,7 +59,7 @@ npm run dev                      # browser game (telemetry off)
 scripts/demo.sh [farm,mill,bakery,lounge]   # dev server + open game with a seeded demo state
 VITE_TELEMETRY=true npm run dev  # browser game, events -> VITE_COLLECTOR_URL (default localhost:3000/events)
 npm run build                    # itch.io build: no event-sending code
-docker compose up -d             # single-node Kafka
+docker compose up -d             # 2-node Kafka + Kafka UI (http://localhost:8080); data kept in volumes, `down -v` wipes
 KAFKA_BROKERS=localhost:9092 npm run collector   # unset KAFKA_BROKERS = print to stdout
 npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # or --out file.jsonl; --speed 60 for real-time pacing
 ```
