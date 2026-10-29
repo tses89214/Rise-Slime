@@ -1,0 +1,8 @@
+{
+  "name": "rise-slime",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": { "test": "vitest run", "typecheck": "tsc --noEmit" },
+  "devDependencies": { "typescript": "^5.6.0", "vitest": "^2.1.0" }
+}

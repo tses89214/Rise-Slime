@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rise &amp; Slime main screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&amp;family=Silkscreen:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F2547}a:hover{color:#000}
+.px{image-rendering:pixelated;shape-rendering:crispEdges}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes wobble{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+@keyframes snooze{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.9)}}
+@keyframes zzz{0%{opacity:0;transform:translateY(0)}50%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+@keyframes walk{0%{transform:translateX(0)}100%{transform:translateX(-170px)}}
+@keyframes pop{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-6px);opacity:1}}
+.hop{animation:hop .9s steps(3) infinite;transform-origin:bottom center}
+.wobble{animation:wobble 1s steps(4) infinite;transform-origin:bottom center}
+.snooze{animation:snooze 2.4s steps(2) infinite;transform-origin:bottom center}
+.zzz{animation:zzz 2.4s steps(4) infinite}
+.walk{animation:walk 9s linear infinite}
+.pop{animation:pop 1.2s steps(3) infinite}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; box-sizing: border-box; padding: 20px; background: #EEF0FF; font-family: 'Pixelify Sans', monospace; color: #1F2547; display: flex; flex-direction: column; gap: 16px">
+
+<header style="display: flex; align-items: center; gap: 24px; padding: 10px 18px; background: #FFFFFF; border: 4px solid #1F2547; box-shadow: 4px 4px 0 #1F2547">
+<div style="font-family: 'Silkscreen', monospace; font-size: 26px; font-weight: 700; letter-spacing: 1px">RISE &amp; SLIME</div>
+<div style="display: flex; align-items: center; gap: 10px; margin-left: 24px">
+<svg class="px" width="28" height="28" viewBox="0 0 7 7" aria-hidden="true"><rect x="2" y="0" width="3" height="1" fill="#C98A12"/><rect x="1" y="1" width="5" height="5" fill="#F5C342"/><rect x="0" y="2" width="7" height="3" fill="#F5C342"/><rect x="2" y="6" width="3" height="1" fill="#C98A12"/><rect x="3" y="2" width="1" height="3" fill="#C98A12"/></svg>
+<div style="font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums">1.2K</div>
+<div style="font-size: 18px; color: #4A5078">coins</div>
+</div>
+<div style="font-size: 20px; padding: 4px 12px; background: #C9F2E3; border: 3px solid #1F2547">+5 / sec</div>
+<div style="margin-left: auto; display: flex; gap: 10px">
+<button style="font-family: inherit; font-size: 18px; color: #1F2547; background: #EEF0FF; border: 3px solid #1F2547; padding: 8px 14px; min-height: 44px; cursor: pointer">Music</button>
+<button style="font-family: inherit; font-size: 18px; color: #1F2547; background: #EEF0FF; border: 3px solid #1F2547; padding: 8px 14px; min-height: 44px; cursor: pointer">SFX</button>
+<button style="font-family: inherit; font-size: 18px; color: #1F2547; background: #EEF0FF; border: 3px solid #1F2547; padding: 8px 14px; min-height: 44px; cursor: pointer">Settings</button>
+</div>
+</header>
+
+<section aria-label="Bakery scene" style="position: relative; height: 330px; border: 4px solid #1F2547; box-shadow: 4px 4px 0 #1F2547; overflow: hidden; background: #BFE3FF; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 110px; background: #8EDB9A; border-top: 4px solid #4FAF6A"></div>
+
+<div style="position: relative; border-right: 3px dashed #93B4E0; display: flex; flex-direction: column; align-items: center; padding-top: 14px">
+<div style="font-family: 'Silkscreen', monospace; font-size: 18px; background: #FFFFFF; border: 3px solid #1F2547; padding: 2px 10px">FARM</div>
+<div style="position: absolute; bottom: 104px; display: flex; gap: 18px">
+<sc-for list="{{wheat}}" as="w" hint-placeholder-count="5">
+<svg class="px pop" width="20" height="40" viewBox="0 0 5 10" aria-hidden="true" style="animation-delay: {{w.d}}"><rect x="2" y="3" width="1" height="7" fill="#7A9A2E"/><rect x="1" y="0" width="3" height="4" fill="#E9B949"/><rect x="2" y="0" width="1" height="1" fill="#F7D774"/></svg>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 34px; display: flex; gap: 12px; align-items: flex-end">
+<sc-for list="{{farm}}" as="s" hint-placeholder-count="4">
+<svg class="px hop" width="48" height="40" viewBox="0 0 12 10" role="img" aria-label="{{s.label}}" style="animation-delay: {{s.d}}"><rect x="3" y="0" width="6" height="1" fill="{{s.c}}"/><rect x="2" y="1" width="8" height="1" fill="{{s.c}}"/><rect x="1" y="2" width="10" height="2" fill="{{s.c}}"/><rect x="0" y="4" width="12" height="5" fill="{{s.c}}"/><rect x="1" y="9" width="10" height="1" fill="{{s.c}}"/><rect x="2" y="2" width="2" height="1" fill="#FFFFFF" opacity="0.7"/><rect x="3" y="4" width="1" height="2" fill="#1F2547"/><rect x="8" y="4" width="1" height="2" fill="#1F2547"/></svg>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 8px; font-size: 15px; color: #1E4A2C">hopping · wheat popping up</div>
+</div>
+
+<div style="position: relative; border-right: 3px dashed #93B4E0; display: flex; flex-direction: column; align-items: center; padding-top: 14px">
+<div style="font-family: 'Silkscreen', monospace; font-size: 18px; background: #FFFFFF; border: 3px solid #1F2547; padding: 2px 10px">MILL</div>
+<div style="position: absolute; bottom: 104px; left: 24px; display: flex; align-items: flex-end; gap: 4px">
+<div style="width: 30px; height: 34px; background: #E3C48D; border: 3px solid #1F2547"></div>
+<div style="width: 30px; height: 46px; background: #E3C48D; border: 3px solid #1F2547"></div>
+<div style="width: 30px; height: 30px; background: #E3C48D; border: 3px solid #1F2547"></div>
+</div>
+<div style="position: absolute; bottom: 160px; left: 36px; font-size: 16px; font-weight: 700; background: #FFE6CC; border: 3px solid #D9661A; padding: 1px 8px">41 wheat waiting</div>
+<div style="position: absolute; bottom: 104px; right: 34px; width: 76px; height: 76px; border-radius: 50%; background: #B8B2A7; border: 4px solid #1F2547; display: flex; align-items: center; justify-content: center"><div style="width: 18px; height: 18px; border-radius: 50%; background: #7E776B; border: 3px solid #1F2547"></div></div>
+<div style="position: absolute; bottom: 34px; display: flex; gap: 12px; align-items: flex-end">
+<sc-for list="{{mill}}" as="s" hint-placeholder-count="3">
+<svg class="px wobble" width="48" height="40" viewBox="0 0 12 10" role="img" aria-label="{{s.label}}" style="animation-delay: {{s.d}}"><rect x="3" y="0" width="6" height="1" fill="{{s.c}}"/><rect x="2" y="1" width="8" height="1" fill="{{s.c}}"/><rect x="1" y="2" width="10" height="2" fill="{{s.c}}"/><rect x="0" y="4" width="12" height="5" fill="{{s.c}}"/><rect x="1" y="9" width="10" height="1" fill="{{s.c}}"/><rect x="2" y="2" width="2" height="1" fill="#FFFFFF" opacity="0.7"/><rect x="3" y="4" width="1" height="2" fill="#1F2547"/><rect x="8" y="4" width="1" height="2" fill="#1F2547"/></svg>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 8px; font-size: 15px; color: #1E4A2C">spinning · short-handed</div>
+</div>
+
+<div style="position: relative; border-right: 3px dashed #93B4E0; display: flex; flex-direction: column; align-items: center; padding-top: 14px">
+<div style="font-family: 'Silkscreen', monospace; font-size: 18px; background: #FFFFFF; border: 3px solid #1F2547; padding: 2px 10px">BAKERY</div>
+<div style="position: absolute; bottom: 104px; width: 120px; height: 92px; background: #B5674A; border: 4px solid #1F2547; display: flex; align-items: flex-end; justify-content: center"><div style="width: 64px; height: 36px; background: #4A2A1E; border: 3px solid #1F2547; border-bottom: none"></div></div>
+<div style="position: absolute; bottom: 22px; display: flex; gap: 6px; align-items: flex-end">
+<sc-for list="{{bakery}}" as="s" hint-placeholder-count="5">
+<div style="position: relative; display: flex; flex-direction: column; align-items: center">
+<div class="zzz" style="font-size: 13px; font-weight: 700; color: #5B5FC7; animation-delay: {{s.d}}">Zz</div>
+<svg class="px snooze" width="40" height="34" viewBox="0 0 12 10" role="img" aria-label="{{s.label}}" style="animation-delay: {{s.d}}"><rect x="3" y="0" width="6" height="1" fill="{{s.c}}"/><rect x="2" y="1" width="8" height="1" fill="{{s.c}}"/><rect x="1" y="2" width="10" height="2" fill="{{s.c}}"/><rect x="0" y="4" width="12" height="5" fill="{{s.c}}"/><rect x="1" y="9" width="10" height="1" fill="{{s.c}}"/><rect x="2" y="2" width="2" height="1" fill="#FFFFFF" opacity="0.7"/><rect x="3" y="5" width="2" height="1" fill="#1F2547"/><rect x="7" y="5" width="2" height="1" fill="#1F2547"/></svg>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 8px; font-size: 15px; color: #1E4A2C">asleep · no flour</div>
+</div>
+
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 14px">
+<div style="font-family: 'Silkscreen', monospace; font-size: 18px; background: #FFFFFF; border: 3px solid #1F2547; padding: 2px 10px">SHOP</div>
+<div style="position: absolute; bottom: 104px; width: 200px; height: 150px; background: #FFFFFF; border: 4px solid #1F2547; display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); height: 26px; border-bottom: 4px solid #1F2547">
+<div style="background: #FF9EC4"></div><div style="background: #FFFFFF"></div><div style="background: #FF9EC4"></div><div style="background: #FFFFFF"></div><div style="background: #FF9EC4"></div><div style="background: #FFFFFF"></div>
+</div>
+<div style="display: flex; flex: 1; align-items: flex-end; justify-content: space-between; padding: 0 16px">
+<div style="width: 58px; height: 44px; background: #BFE3FF; border: 3px solid #1F2547; margin-bottom: 30px"></div>
+<div style="width: 46px; height: 72px; background: #8A5A3B; border: 3px solid #1F2547; border-bottom: none"></div>
+</div>
+</div>
+<div class="walk" style="position: absolute; bottom: 30px; right: -20px; display: flex; gap: 22px; align-items: flex-end">
+<sc-for list="{{customers}}" as="m" hint-placeholder-count="3">
+<svg class="px hop" width="36" height="40" viewBox="0 0 9 10" role="img" aria-label="{{m.label}}" style="animation-delay: {{m.d}}"><rect x="1" y="0" width="2" height="2" fill="{{m.c}}"/><rect x="6" y="0" width="2" height="2" fill="{{m.c}}"/><rect x="0" y="2" width="9" height="6" fill="{{m.c}}"/><rect x="1" y="8" width="2" height="2" fill="{{m.c}}"/><rect x="6" y="8" width="2" height="2" fill="{{m.c}}"/><rect x="2" y="4" width="1" height="2" fill="#1F2547"/><rect x="6" y="4" width="1" height="2" fill="#1F2547"/><rect x="4" y="6" width="1" height="1" fill="#1F2547"/></svg>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 8px; font-size: 15px; color: #1E4A2C">customers walking in</div>
+</div>
+</section>
+
+<section aria-label="Stations" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{stations}}" as="st" hint-placeholder-count="3">
+<div style="background: #FFFFFF; border: 4px solid {{st.border}}; box-shadow: 4px 4px 0 #1F2547; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<div style="font-family: 'Silkscreen', monospace; font-size: 22px; font-weight: 700">{{st.name}}</div>
+<div style="font-size: 17px">{{st.slots}}</div>
+</div>
+<div style="font-size: 18px">{{st.rate}}</div>
+<div style="display: flex; justify-content: space-between; font-size: 16px; color: #4A5078"><span>{{st.queueLabel}}</span><span style="font-weight: 700">{{st.queueNote}}</span></div>
+<div style="height: 14px; background: #E1E5F7; border: 3px solid #1F2547"><div style="height: 100%; width: {{st.fill}}; background: {{st.barColor}}"></div></div>
+<div style="display: flex; gap: 8px; margin-top: 4px">
+<button aria-label="Move one slime back to the lounge" style="font-family: inherit; font-size: 22px; font-weight: 700; color: #1F2547; background: #EEF0FF; border: 3px solid #1F2547; width: 48px; height: 44px; cursor: pointer">−</button>
+<button aria-label="Assign one slime from the lounge" style="font-family: inherit; font-size: 22px; font-weight: 700; color: #1F2547; background: #EEF0FF; border: 3px solid #1F2547; width: 48px; height: 44px; cursor: pointer">+</button>
+<button style="flex: 1; font-family: inherit; font-size: 18px; font-weight: 600; color: #1F2547; background: #FF9EC4; border: 3px solid #1F2547; height: 44px; cursor: pointer">{{st.upgrade}}</button>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section aria-label="Lounge and shop actions" style="display: flex; gap: 16px; flex: 1">
+<div style="flex: 1; background: #FFFFFF; border: 4px solid #1F2547; box-shadow: 4px 4px 0 #1F2547; padding: 10px 16px; display: flex; align-items: center; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Silkscreen', monospace; font-size: 20px; font-weight: 700">LOUNGE</div>
+<div style="font-size: 16px; color: #4A5078">New slimes wait here. Tap + on a station to assign.</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-end; margin-left: auto">
+<sc-for list="{{lounge}}" as="s" hint-placeholder-count="2">
+<svg class="px hop" width="48" height="40" viewBox="0 0 12 10" role="img" aria-label="{{s.label}}" style="animation-delay: {{s.d}}; animation-duration: 2.6s"><rect x="3" y="0" width="6" height="1" fill="{{s.c}}"/><rect x="2" y="1" width="8" height="1" fill="{{s.c}}"/><rect x="1" y="2" width="10" height="2" fill="{{s.c}}"/><rect x="0" y="4" width="12" height="5" fill="{{s.c}}"/><rect x="1" y="9" width="10" height="1" fill="{{s.c}}"/><rect x="2" y="2" width="2" height="1" fill="#FFFFFF" opacity="0.7"/><rect x="3" y="4" width="1" height="2" fill="#1F2547"/><rect x="8" y="4" width="1" height="2" fill="#1F2547"/></svg>
+</sc-for>
+</div>
+</div>
+<button style="width: 300px; font-family: inherit; color: #1F2547; background: #FF9EC4; border: 4px solid #1F2547; box-shadow: 4px 4px 0 #1F2547; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+<span style="font-family: 'Silkscreen', monospace; font-size: 24px; font-weight: 700">BUY SLIME</span>
+<span style="font-size: 18px">35 coins</span>
+</button>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const blue = '#5B9BD5', leafy = '#6CC24A', rocky = '#A0785A', fiery = '#E2604A', lucky = '#F2C94C';
+    return {
+      wheat: [{ d: '0s' }, { d: '.4s' }, { d: '.8s' }, { d: '.2s' }, { d: '.6s' }],
+      farm: [
+        { c: blue, d: '0s', label: 'Slime farming' },
+        { c: leafy, d: '.3s', label: 'Leafy slime farming' },
+        { c: blue, d: '.6s', label: 'Slime farming' },
+        { c: blue, d: '.15s', label: 'Slime farming' }
+      ],
+      mill: [
+        { c: blue, d: '0s', label: 'Slime milling' },
+        { c: rocky, d: '.5s', label: 'Rocky slime milling' },
+        { c: blue, d: '.25s', label: 'Slime milling' }
+      ],
+      bakery: [
+        { c: fiery, d: '0s', label: 'Fiery slime asleep' },
+        { c: blue, d: '.6s', label: 'Slime asleep' },
+        { c: blue, d: '1.2s', label: 'Slime asleep' },
+        { c: lucky, d: '.3s', label: 'Lucky slime asleep' },
+        { c: blue, d: '.9s', label: 'Slime asleep' }
+      ],
+      customers: [
+        { c: '#E59AC2', d: '0s', label: 'Pink customer' },
+        { c: '#A98BD8', d: '.3s', label: 'Purple customer' },
+        { c: '#8FD3C6', d: '.6s', label: 'Teal customer' }
+      ],
+      lounge: [
+        { c: blue, d: '0s', label: 'Idle slime' },
+        { c: blue, d: '1.1s', label: 'Idle slime' }
+      ],
+      stations: [
+        { name: 'FARM', slots: '4 / 10 slots', rate: '4.0 wheat / sec', queueLabel: 'Queue', queueNote: '—', fill: '0%', barColor: '#6FA8FF', border: '#1F2547', upgrade: 'Upgrade · 56' },
+        { name: 'MILL', slots: '3 / 10 slots', rate: '1.0 flour / sec', queueLabel: 'Queue: 41 wheat', queueNote: 'Backing up!', fill: '88%', barColor: '#F08A24', border: '#D9661A', upgrade: 'Upgrade · 50' },
+        { name: 'BAKERY', slots: '5 / 10 slots', rate: '0.5 bread / sec', queueLabel: 'Queue: 0 flour', queueNote: 'Starved', fill: '4%', barColor: '#6FA8FF', border: '#1F2547', upgrade: 'Upgrade · 63' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
