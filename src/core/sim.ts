@@ -142,6 +142,7 @@ export function takeWindow(s: State) {
       produced: s.stations[id].produced, consumed: s.stations[id].consumed, input_stock: s.stations[id].stock,
     })),
     bread_sold: s.breadSold, coins_earned: s.coinsEarned, coins_balance: s.coins,
+    slimes_owned: s.slimes.length, achievements_unlocked: s.achievements.length, // state snapshot: lets a dashboard rank players whose progress predates telemetry
   };
   for (const id of STATIONS) s.stations[id].produced = s.stations[id].consumed = 0;
   s.breadSold = s.coinsEarned = 0;

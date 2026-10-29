@@ -3,6 +3,7 @@
 _Last updated: 2026-10-29 (clocked out)_
 
 ## Status
+Dashboard has an All / Browser / Bots switch (`?client=`); `production_1m` and `pipeline_1m` carry `client`. `production_tick` now also carries `slimes_owned` and `achievements_unlocked` (state snapshot, see `docs/decisions/2026-10-29-tick-state-fields.md`). Offline progress no longer leaks into the next tick (bug fixed in `applyOffline`, test added). 162 tests, typecheck pass.
 M2 pipeline + dashboard first version done: bots/browser -> collector -> Kafka -> Flink -> Kafka -> ClickHouse -> `http://localhost:3000/dashboard` (KPIs, per-station output and queues, activity, pipeline health, richest and most efficient players). Browser telemetry verified in headless Chrome: session_start/production_tick/achievement_unlocked/session_end land in ClickHouse with client=browser.
 M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated, data in volumes) -> Kafka UI.
 160 tests, typecheck and build pass. Game is considered finished; moving on to M2.
@@ -19,7 +20,8 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 2. Dashboard polish: DLQ/duplicate panels, time-range picker, a way to see browser vs bot.
 
 ## Open / not verified
+- Resubmitting `job.sql` replays all of Kafka (no checkpoints/savepoints, `earliest-offset`): `events` gets duplicate rows (ReplacingMergeTree collapses them at merge; dashboard KPIs use count(), so they read high until then) and the plain-MergeTree `production_1m` / `pipeline_1m` / `ops_1m` get duplicate windows. Truncate those three (or `down -v`) before resubmitting.
 - `player_state` was changed to take slimes/levels from the latest `production_tick` (purchase/achievement events are missing for progress made before telemetry was on). Existing rows were backfilled by running the MV's SELECT once; a fresh `init.sql` start has no backfill need. Achievement totals are not on the dashboard for the same reason: the game would have to send a state snapshot.
-- Right after `docker compose up`, wait ~40s before sending: first topic auto-create can fail with "does not host this topic-partition".
+- Right after `docker compose up`, the first collector posts hit topic auto-create errors (kafkajs ERROR logs for a few seconds); events flow afterwards. From-scratch start (`down -v`, `up`, init.sql, collector, bots, flink-sql) verified once.
 - Collector prints a `TimeoutNegativeWarning` at startup (cause not investigated, harmless so far).
 - Not built: Phaser, bot `disconnect_rate`/`max_buffer`, Level-up/squish sounds.

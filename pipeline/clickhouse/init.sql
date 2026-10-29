@@ -45,42 +45,44 @@ FROM slime.kafka_events;
 -- (summing every tick would multiply them by the tick count); multiply by players for a fleet total.
 CREATE TABLE IF NOT EXISTS slime.production_1m (
     window_start DateTime('UTC'),
+    client       LowCardinality(String),   -- browser | bot: the dashboard can filter by it
     station      LowCardinality(String),
     players      UInt32,
     slimes       Float64,
     produced     UInt64,
     consumed     UInt64,
     input_stock  Float64
-) ENGINE = MergeTree ORDER BY (window_start, station);
+) ENGINE = MergeTree ORDER BY (window_start, client, station);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_production_1m (
-    window_start String, station String, players UInt32, slimes Float64, produced UInt64, consumed UInt64, input_stock Float64
+    window_start String, client String, station String, players UInt32, slimes Float64, produced UInt64, consumed UInt64, input_stock Float64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.production_1m',
     kafka_group_name = 'clickhouse-production-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_production_1m_mv TO slime.production_1m AS
-SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, station, players, slimes, produced, consumed, input_stock
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, station, players, slimes, produced, consumed, input_stock
 FROM slime.kafka_production_1m;
 
 -- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates/late stay 0 until M3.
 CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
     window_start   DateTime('UTC'),
+    client         LowCardinality(String),
     event_type     LowCardinality(String),
     events         UInt64,
     duplicates     UInt64 DEFAULT 0,
     late           UInt64 DEFAULT 0,
     avg_latency_ms Float64,
     max_latency_ms Int64     -- can be negative: bots in fast-forward stamp event_time ahead of ingestion
-) ENGINE = MergeTree ORDER BY (window_start, event_type);
+) ENGINE = MergeTree ORDER BY (window_start, client, event_type);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_pipeline_1m (
-    window_start String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64
+    window_start String, client String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.pipeline_1m',
     kafka_group_name = 'clickhouse-pipeline-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_pipeline_1m_mv TO slime.pipeline_1m
-    (window_start DateTime('UTC'), event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
-SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, event_type, events, avg_latency_ms, max_latency_ms
+    (window_start DateTime('UTC'), client String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, event_type, events, avg_latency_ms, max_latency_ms
 FROM slime.kafka_pipeline_1m;
 
 -- Rejected events. Read straight from the collector's events.dlq topic (nothing to compute, so no Flink job).
@@ -133,8 +135,9 @@ FROM slime.kafka_ops_1m;
 
 -- Latest state per player, for the leaderboard. Fed by a materialized view on `events`, not by Flink.
 -- Every column merges idempotently (max / min / argMax by event_time), so duplicate or re-ordered events change nothing.
--- slimes / levels come from the latest production_tick (stations[].slimes, .level), not from purchase events: a player
--- whose progress predates telemetry has no purchase events but still reports the right totals. slimes = assigned to stations.
+-- slimes / achievements / levels come from the latest production_tick snapshot, not from purchase/achievement events:
+-- a player whose progress predates telemetry has no such events but still reports the right totals.
+-- (Ticks recorded before the snapshot fields existed lack them; JSONHas keeps those from overwriting real values with 0.)
 CREATE TABLE IF NOT EXISTS slime.player_state (
     player_id     String,
     client        SimpleAggregateFunction(anyLast, String),
@@ -142,7 +145,8 @@ CREATE TABLE IF NOT EXISTS slime.player_state (
     first_seen    SimpleAggregateFunction(min, DateTime64(3, 'UTC')),
     last_seen     SimpleAggregateFunction(max, DateTime64(3, 'UTC')),
     coins         AggregateFunction(argMax, Float64, DateTime64(3, 'UTC')),   -- balance goes up and down: latest wins
-    slimes        AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC')),
+    slimes        AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC')),    -- owned, lounge included
+    achievements  AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC')),
     levels        AggregateFunction(argMax, UInt32, DateTime64(3, 'UTC'))     -- sum of the three station levels
 ) ENGINE = AggregatingMergeTree ORDER BY player_id;
 
@@ -154,7 +158,8 @@ SELECT
     event_time AS first_seen,
     event_time AS last_seen,
     argMaxStateIf(JSONExtractFloat(payload, 'coins_balance'), event_time, event_type = 'production_tick') AS coins,
-    argMaxStateIf(toUInt32(arraySum(arrayMap(x -> JSONExtractUInt(x, 'slimes'), JSONExtractArrayRaw(payload, 'stations')))), event_time, event_type = 'production_tick') AS slimes,
+    argMaxStateIf(toUInt32(JSONExtractUInt(payload, 'slimes_owned')), event_time, event_type = 'production_tick' AND JSONHas(payload, 'slimes_owned')) AS slimes,
+    argMaxStateIf(toUInt32(JSONExtractUInt(payload, 'achievements_unlocked')), event_time, event_type = 'production_tick' AND JSONHas(payload, 'achievements_unlocked')) AS achievements,
     argMaxStateIf(toUInt32(arraySum(arrayMap(x -> JSONExtractUInt(x, 'level'), JSONExtractArrayRaw(payload, 'stations')))), event_time, event_type = 'production_tick') AS levels
 FROM slime.events
 GROUP BY player_id, client, bot_persona, event_time;
@@ -166,7 +171,8 @@ SELECT
     any(client) AS client,
     any(bot_persona) AS bot_persona,
     argMaxMerge(coins) AS coins_now,
-    argMaxMerge(slimes) AS slimes_working,
+    argMaxMerge(slimes) AS slimes_owned,
+    argMaxMerge(achievements) AS achievements_unlocked,
     argMaxMerge(levels) AS station_levels,
     min(first_seen) AS first_seen_at,
     max(last_seen) AS last_seen_at,
@@ -181,6 +187,7 @@ CREATE VIEW IF NOT EXISTS slime.efficiency AS
 SELECT
     player_id,
     any(client) AS client,
+    any(bot_persona) AS bot_persona,
     sum(JSONExtractUInt(payload, 'coins_earned')) AS earned,
     sum(dateDiff('second', parseDateTime64BestEffort(JSONExtractString(payload, 'window_start')),
                            parseDateTime64BestEffort(JSONExtractString(payload, 'window_end')))) / 60 AS minutes,
@@ -189,7 +196,7 @@ SELECT
 FROM slime.events FINAL
 WHERE event_type = 'production_tick' AND event_time > now64(3) - INTERVAL 1 HOUR
 GROUP BY player_id
-ORDER BY coins_per_min DESC;
+ORDER BY coins_per_min DESC, player_id;
 
 -- DAU / WAU / MAU per day and client (rolling 1 / 7 / 30 days, UTC days). Reads `events`, no extra state.
 CREATE VIEW IF NOT EXISTS slime.activity_daily AS

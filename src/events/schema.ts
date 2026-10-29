@@ -36,7 +36,7 @@ export const GameEvent = z.discriminatedUnion('event_type', [
   base.extend({
     event_type: z.literal('production_tick'), window_start: ts, window_end: ts,
     stations: z.array(z.object({ station, slimes: z.number(), level: z.number(), produced: z.number(), consumed: z.number(), input_stock: z.number() })),
-    bread_sold: z.number(), coins_earned: z.number(), coins_balance: z.number(),
+    bread_sold: z.number(), coins_earned: z.number(), coins_balance: z.number(), slimes_owned: z.number(), achievements_unlocked: z.number(),
   }),
 ]);
 export type GameEvent = z.infer<typeof GameEvent>;

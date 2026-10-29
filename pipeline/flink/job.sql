@@ -35,13 +35,13 @@ CREATE TABLE events_typed (
   'format' = 'json', 'json.timestamp-format.standard' = 'ISO-8601', 'json.ignore-parse-errors' = 'true');
 
 CREATE TABLE ch_production_1m (
-  window_start STRING, station STRING, players BIGINT, slimes DOUBLE, produced BIGINT, consumed BIGINT, input_stock DOUBLE
+  window_start STRING, client STRING, station STRING, players BIGINT, slimes DOUBLE, produced BIGINT, consumed BIGINT, input_stock DOUBLE
 ) WITH (
   'connector' = 'kafka', 'topic' = 'ch.production_1m',
   'properties.bootstrap.servers' = 'kafka:29092,kafka2:29092', 'format' = 'json');
 
 CREATE TABLE ch_pipeline_1m (
-  window_start STRING, event_type STRING, events BIGINT, avg_latency_ms DOUBLE, max_latency_ms BIGINT
+  window_start STRING, client STRING, event_type STRING, events BIGINT, avg_latency_ms DOUBLE, max_latency_ms BIGINT
 ) WITH (
   'connector' = 'kafka', 'topic' = 'ch.pipeline_1m',
   'properties.bootstrap.servers' = 'kafka:29092,kafka2:29092', 'format' = 'json');
@@ -67,16 +67,16 @@ FROM events_raw;
 
 -- Group-window syntax (not the TUMBLE table function): the table function plus a view trips a planner bug in statement sets.
 INSERT INTO ch_production_1m
-SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), s.station,
+SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), client, s.station,
   COUNT(DISTINCT player_id), AVG(CAST(s.slimes AS DOUBLE)), SUM(s.produced), SUM(s.consumed), AVG(CAST(s.input_stock AS DOUBLE))
 FROM events_typed CROSS JOIN UNNEST(stations) AS s
 WHERE event_type = 'production_tick'
-GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), s.station;
+GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), client, s.station;
 INSERT INTO ch_pipeline_1m
-SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), event_type,
+SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), client, event_type,
   COUNT(*), AVG(CAST(latency_ms AS DOUBLE)), MAX(latency_ms)
 FROM events_typed
-GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), event_type;
+GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), client, event_type;
 
 INSERT INTO ch_ops_1m
 SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), client,

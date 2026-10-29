@@ -511,7 +511,7 @@ M1 共 8 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一�
 | `slime_assigned` | 調整崗位 | `slime_id`、`from_station`、`to_station`（待命區為空） |
 | `station_upgraded` | 升級工作站 | `station`、`new_level`、`cost`、`speed_multiplier`、`milestone_reached`、`coins_after` |
 | `achievement_unlocked` | 解鎖成就 | `achievement_id`、`total_unlocked` |
-| `production_tick` | 每 5 秒 | `window_start`、`window_end`、`stations`（每站的人數、等級、產量、消耗量、待處理庫存）、`bread_sold`、`coins_earned`、`coins_balance` |
+| `production_tick` | 每 5 秒 | `window_start`、`window_end`、`stations`（每站的人數、等級、產量、消耗量、待處理庫存）、`bread_sold`、`coins_earned`、`coins_balance`、`slimes_owned`（含待命區的總數）、`achievements_unlocked`（累計） |
 
 `production_tick` 範例：
 
@@ -538,7 +538,9 @@ M1 共 8 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一�
   ],
   "bread_sold": 2,
   "coins_earned": 20,
-  "coins_balance": 135
+  "coins_balance": 135,
+  "slimes_owned": 14,
+  "achievements_unlocked": 3
 }
 ```
 

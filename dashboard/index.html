@@ -15,6 +15,10 @@
   h2 { margin:0 0 8px; font-size:32px; }
   header { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
   #status { margin-left:auto; color:var(--ink2); }
+  #filter { display:flex; }
+  #filter button { font:inherit; color:var(--ink); background:var(--panel); border:3px solid var(--ink); padding:2px 14px; margin-left:-3px; cursor:pointer; }
+  #filter button.on { background:var(--primary); box-shadow:inset 0 0 0 0 var(--ink); }
+  #filter button:active { transform:translateY(2px); }
   #dot { display:inline-block; width:12px; height:12px; background:var(--farm); border:2px solid var(--ink); margin-right:6px; }
   #dot.bad { background:var(--warn); }
   .card { background:var(--panel); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:12px 14px; min-width:0; }
@@ -26,7 +30,7 @@
   .chart { width:100%; }
   .empty { color:var(--ink2); padding:70px 0; text-align:center; }
   table { width:100%; border-collapse:collapse; }
-  th, td { text-align:right; padding:4px 8px; border-bottom:2px solid #EEF0FF; }
+  th, td { text-align:right; padding:4px 8px; border-bottom:2px solid #EEF0FF; white-space:nowrap; }
   th:first-child, td:first-child { text-align:left; }
   th { color:var(--ink2); font-weight:normal; }
   .on { color:var(--farm); } .off { color:var(--ink2); }
@@ -37,6 +41,7 @@
 <body>
 <header>
   <h1>Rise &amp; Slime · Ops</h1>
+  <div id="filter"><button data-c="all">All</button><button data-c="browser">Browser</button><button data-c="bot">Bots</button></div>
   <div id="status"><span id="dot"></span><span id="stamp">connecting…</span></div>
 </header>
 
@@ -64,6 +69,7 @@
 const $ = (id) => document.getElementById(id);
 const COLORS = { farm:'#4FAF6A', mill:'#6FA8FF', bakery:'#FF9EC4', a:'#1F2547', b:'#F08A24', c:'#4FAF6A' };
 const charts = {};
+let client = new URLSearchParams(location.search).get('client') || 'all';
 const compact = (v) => Intl.NumberFormat('en', { notation:'compact', maximumFractionDigits:1 }).format(v);
 
 // rows [{t, <key>...}] -> aligned uPlot data; `by` splits one metric into a series per value (e.g. station).
@@ -81,7 +87,8 @@ function align(rows, keys, by) {
 
 function draw(id, rows, keys, by, colors, rightAxisFrom) {
   const el = $(id);
-  if (!rows.length) { el.innerHTML = '<div class="empty">no data in range</div>'; delete charts[id]; return; }
+  // one window is a single point: uPlot would stretch the x axis over years, so wait for a second one
+  if (new Set(rows.map((r) => r.t)).size < 2) { el.innerHTML = '<div class="empty">' + (rows.length ? 'waiting for a second 1-minute window…' : 'no data in range') + '</div>'; charts[id]?.destroy(); delete charts[id]; return; }
   const { data, names } = align(rows, keys, by);
   if (!charts[id]) {
     el.innerHTML = '';
@@ -105,7 +112,7 @@ function table(id, cols, rows) {
 const n = (x) => Number(x).toLocaleString('en-US');
 async function refresh() {
   try {
-    const d = await (await fetch('/api/dashboard?minutes=60')).json();
+    const d = await (await fetch('/api/dashboard?minutes=60&client=' + client)).json();
     if (d.error) throw new Error(d.error);
     const k = d.kpi[0];
     $('k-online').textContent = n(k.online);
@@ -119,9 +126,9 @@ async function refresh() {
     draw('c-ops', d.ops, ['active', 'purchases', 'upgrades'], null, [COLORS.a, COLORS.b, COLORS.c]);
     draw('c-pipe', d.pipeline, ['events', 'latency_ms'], null, [COLORS.a, COLORS.b], 1); // latency on the right axis
 
-    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['levels', (r) => n(r.levels)],
-      ['', (r) => `<span class="${r.online ? 'on' : 'off'}">${r.online ? '● online' : '○ away'}</span>`]], d.richest);
-    table('t-eff', [['player', (r) => r.player_id], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
+    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['levels', (r) => n(r.levels)], ['ach.', (r) => r.achievements],
+      ['', (r) => `<span class="${r.online ? 'on' : 'off'}" title="${r.online ? 'online' : 'away'}">${r.online ? '●' : '○'}</span>`]], d.richest);
+    table('t-eff', [['player', (r) => r.player_id], ['persona', (r) => r.persona ?? 'human'], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
 
     $('dot').className = '';
     $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');
@@ -130,6 +137,14 @@ async function refresh() {
     $('stamp').textContent = 'offline: ' + e.message.slice(0, 80);
   }
 }
+document.querySelectorAll('#filter button').forEach((b) => {
+  b.onclick = () => {
+    client = b.dataset.c; history.replaceState(null, '', client === 'all' ? location.pathname : '?client=' + client);
+    mark(); for (const k of Object.keys(charts)) { charts[k].destroy(); delete charts[k]; } refresh();
+  };
+});
+const mark = () => document.querySelectorAll('#filter button').forEach((b) => b.classList.toggle('on', b.dataset.c === client));
+mark();
 addEventListener('resize', () => Object.entries(charts).forEach(([id, c]) => c.setSize({ width: $(id).clientWidth, height: 230 })));
 refresh(); setInterval(refresh, 5000);
 </script>

@@ -239,6 +239,16 @@ describe('made counter', () => {
 });
 
 describe('takeWindow', () => {
+  test('snapshot counts every slime (lounge included) and unlocked achievements, which the per-station numbers cannot show', () => {
+    const s = newState({ farm: 2, mill: 1, bakery: 1 });
+    s.coins = 1000;
+    buySlime(s); // waits in the lounge: on no station
+    s.achievements = ['first_slime', 'first_bread'];
+    const w = takeWindow(s);
+    expect(w.stations.reduce((n, x) => n + x.slimes, 0)).toBe(4);
+    expect(w.slimes_owned).toBe(5);
+    expect(w.achievements_unlocked).toBe(2);
+  });
   test('reports per-station counters and resets them, keeping stock/coins', () => {
     const s = newState({ farm: 4, mill: 1, bakery: 5 });
     run(s, 30);

@@ -15,7 +15,7 @@ const VALID: Record<string, object> = {
   slime_assigned: { slime_id: 'slime-1', from_station: null, to_station: 'farm' },
   station_upgraded: { station: 'farm', new_level: 1, cost: 50, speed_multiplier: 1.1, milestone_reached: false, coins_after: 5 },
   achievement_unlocked: { achievement_id: 'first_bread', total_unlocked: 1 },
-  production_tick: { window_start: T, window_end: T, stations: [station], bread_sold: 0, coins_earned: 0, coins_balance: 20 },
+  production_tick: { window_start: T, window_end: T, stations: [station], bread_sold: 0, coins_earned: 0, coins_balance: 20, slimes_owned: 3, achievements_unlocked: 0 },
 };
 
 describe('uuid7', () => {
