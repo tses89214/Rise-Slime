@@ -48,3 +48,93 @@ CREATE TABLE IF NOT EXISTS slime.dead_letters (
     error       String,
     raw         String
 ) ENGINE = MergeTree ORDER BY received_at;
+
+-- ---- Live ops: "how is the game doing right now" ----
+
+-- Game activity per minute and client (browser vs bot), written by Flink. uniq counts are not additive, so this is
+-- computed per window, not derived from other aggregates. Daily DAU / retention: query `events` directly, add a table if slow.
+CREATE TABLE IF NOT EXISTS slime.ops_1m (
+    window_start          DateTime('UTC'),
+    client                LowCardinality(String),
+    active_players        UInt32,   -- players with any event in the window
+    new_players           UInt32,   -- session_start with is_new_player
+    sessions_started      UInt32,
+    sessions_ended        UInt32,
+    avg_session_seconds   Float64,  -- over sessions ended in the window
+    slimes_purchased      UInt32,
+    station_upgrades      UInt32,
+    achievements_unlocked UInt32,
+    bread_sold            UInt64,
+    coins_earned          UInt64
+) ENGINE = MergeTree ORDER BY (window_start, client);
+
+-- Latest state per player, for the leaderboard. Fed by a materialized view on `events`, not by Flink.
+-- Every column merges idempotently (max / min / argMax by event_time), so duplicate or re-ordered events change nothing.
+CREATE TABLE IF NOT EXISTS slime.player_state (
+    player_id     String,
+    client        SimpleAggregateFunction(anyLast, String),
+    bot_persona   SimpleAggregateFunction(anyLast, Nullable(String)),
+    first_seen    SimpleAggregateFunction(min, DateTime64(3, 'UTC')),
+    last_seen     SimpleAggregateFunction(max, DateTime64(3, 'UTC')),
+    slimes_bought SimpleAggregateFunction(max, UInt32),   -- total_purchased only grows
+    achievements  SimpleAggregateFunction(max, UInt32),   -- total_unlocked only grows
+    coins         AggregateFunction(argMax, Float64, DateTime64(3, 'UTC'))   -- balance goes up and down: latest wins
+) ENGINE = AggregatingMergeTree ORDER BY player_id;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.player_state_mv TO slime.player_state AS
+SELECT
+    player_id,
+    client,
+    bot_persona,
+    event_time AS first_seen,
+    event_time AS last_seen,
+    toUInt32(if(event_type = 'slime_purchased', JSONExtractUInt(payload, 'total_purchased'), 0)) AS slimes_bought,
+    toUInt32(if(event_type = 'achievement_unlocked', JSONExtractUInt(payload, 'total_unlocked'), 0)) AS achievements,
+    argMaxStateIf(JSONExtractFloat(payload, 'coins_balance'), event_time, event_type = 'production_tick') AS coins
+FROM slime.events
+GROUP BY player_id, client, bot_persona, event_time, slimes_bought, achievements;
+
+-- What the dashboard reads. online = seen in the last 2 minutes (production_tick is the heartbeat).
+CREATE VIEW IF NOT EXISTS slime.leaderboard AS
+SELECT
+    player_id,
+    any(client) AS client,
+    any(bot_persona) AS bot_persona,
+    argMaxMerge(coins) AS coins_now,
+    max(slimes_bought) AS slimes,
+    max(achievements) AS achievements_unlocked,
+    min(first_seen) AS first_seen_at,
+    max(last_seen) AS last_seen_at,
+    last_seen_at > now64(3) - INTERVAL 2 MINUTE AS online
+FROM slime.player_state
+GROUP BY player_id
+ORDER BY coins_now DESC;
+
+-- Efficiency ranking, last hour: coins earned per minute of reported production time, per slime owned.
+-- Reads `events` FINAL so duplicate ticks are not double counted; fine at demo volume, move to a table if slow.
+CREATE VIEW IF NOT EXISTS slime.efficiency AS
+SELECT
+    player_id,
+    any(client) AS client,
+    sum(JSONExtractUInt(payload, 'coins_earned')) AS earned,
+    sum(dateDiff('second', parseDateTime64BestEffort(JSONExtractString(payload, 'window_start')),
+                           parseDateTime64BestEffort(JSONExtractString(payload, 'window_end')))) / 60 AS minutes,
+    earned / nullIf(minutes, 0) AS coins_per_min,
+    coins_per_min / nullIf(max(arraySum(arrayMap(s -> s.1, JSONExtract(payload, 'stations', 'Array(Tuple(slimes UInt32))')))), 0) AS coins_per_min_per_slime
+FROM slime.events FINAL
+WHERE event_type = 'production_tick' AND event_time > now64(3) - INTERVAL 1 HOUR
+GROUP BY player_id
+ORDER BY coins_per_min DESC;
+
+-- DAU / WAU / MAU per day and client (rolling 1 / 7 / 30 days, UTC days). Reads `events`, no extra state.
+CREATE VIEW IF NOT EXISTS slime.activity_daily AS
+WITH pd AS (SELECT DISTINCT toDate(event_time) AS day, player_id, client FROM slime.events),
+     days AS (SELECT DISTINCT day AS d FROM pd)
+SELECT d AS day, pd.client AS client,
+    uniqIf(player_id, pd.day = d) AS dau,
+    uniqIf(player_id, pd.day > d - 7) AS wau,
+    uniq(player_id) AS mau
+FROM days CROSS JOIN pd
+WHERE pd.day <= d AND pd.day > d - 30
+GROUP BY day, client
+ORDER BY day, client;
