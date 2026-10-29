@@ -71,4 +71,4 @@ npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # o
 
 ## Repo state
 
-M1 first version done except: Phaser scene, sprites, audio (only the scene background tile from Kenney Tiny Town is in; see CREDITS.md), bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2). Slot caps and the Manager Slime are not in M1 scope.
+M1 first version done except: Phaser scene, sprites, audio (sprites, fonts, music and sfx are in `public/assets/` and listed in CREDITS.md; some spec assets are not included, reasons in CREDITS.md; slime sprite sheets are 9x9 grids of 64px frames, idle row is y=128), bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2). Slot caps and the Manager Slime are not in M1 scope.

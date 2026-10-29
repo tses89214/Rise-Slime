@@ -18,6 +18,22 @@ if (import.meta.env.VITE_TELEMETRY === 'true') {
   );
 }
 
+// --- audio: browsers block autoplay, so music starts on first click ---
+const sfx = (f: string) => { if (muted.sfx) return; const a = new Audio(`/assets/audio/sfx/${f}`); a.volume = 0.4; void a.play().catch(() => {}); };
+const muted = { music: localStorage.getItem('rise-slime-music') !== 'on', sfx: false };
+const tracks = ['8-bit-concentration-loop.mp3', 'sometimes.ogg', 'cunning-plan.ogg'].map((f) => `/assets/audio/music/${f}`);
+let track = 0;
+const music = new Audio(tracks[0]);
+music.volume = 0.25;
+music.onended = () => { music.src = tracks[++track % tracks.length]; void music.play(); }; // rotate so one loop doesn't wear out
+const syncMusic = () => {
+  $('mute').textContent = `Music: ${muted.music ? 'off' : 'on'}`;
+  try { localStorage.setItem('rise-slime-music', muted.music ? 'off' : 'on'); } catch { /* ignore */ }
+  if (muted.music) music.pause(); else void music.play().catch(() => {});
+};
+$('mute').onclick = () => { muted.music = !muted.music; syncMusic(); };
+addEventListener('click', () => { if (!muted.music && music.paused) void music.play().catch(() => {}); }, { once: true });
+
 // --- state ---
 interface Save { state: State; savedAt: number }
 let s: State = newState();
@@ -55,6 +71,7 @@ $('cards').innerHTML = STATIONS.map((id) => `
 $('buy').onclick = () => {
   const cost = slimeCost(s);
   const slime = buySlime(s);
+  if (slime) sfx('coin1.wav');
   if (slime) emit?.('slime_purchased', Date.now(), { slime_id: slime.id, cost, total_purchased: s.totalPurchased, coins_after: s.coins });
   render();
 };
@@ -63,15 +80,19 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
     const d = b.dataset;
     if (d.up) {
       const id = d.up as StationId, cost = upgradeCost(s, id), u = upgrade(s, id);
+      if (u) sfx('confirmation_002.ogg');
       if (u) emit?.('station_upgraded', Date.now(), { station: id, new_level: u.level, cost, speed_multiplier: u.speedMultiplier, milestone_reached: u.milestone, coins_after: s.coins });
     } else {
       const r = d.plus ? assignOne(s, d.plus as StationId) : assignOne(s, null, d.minus as StationId);
+      if (r) sfx('mud_01.ogg');
       if (r) emit?.('slime_assigned', Date.now(), { slime_id: r.slime.id, from_station: r.from, to_station: r.to });
     }
     render();
   };
 });
 
+syncMusic();
+let lastScene = '';
 let rate = 0, lastCoins = s.bread * 10, lastRateAt = performance.now();
 function render() {
   $('coins').textContent = fmt(s.coins);
@@ -97,7 +118,9 @@ function render() {
     const asleep = id !== 'farm' && s.stations[id].stock < (id === 'mill' ? 2 : 2);
     return `<div class="zone"><small>${label}</small>${Array.from({ length: Math.min(8, count(s, id)) }, () => `<span class="slime${asleep ? ' asleep' : ''}"></span>`).join('')}${count(s, id) > 8 ? ` +${count(s, id) - 8}` : ''}${asleep && count(s, id) ? '<small>Zzz</small>' : ''}</div>`;
   };
-  $('scene').innerHTML = zone('Farm', 'farm') + zone('Mill', 'mill') + zone('Bakery', 'bakery') + `<div class="zone"><small>Shop</small>Bread sold: ${fmt(s.bread)}</div>`;
+  const html = zone('Farm', 'farm') + zone('Mill', 'mill') + zone('Bakery', 'bakery') + `<div class="zone shop"><small>Shop</small><img class="icon" src="/assets/food/bread_loaf_brown.png" alt=""> <b id="bread"></b>${[1, 3, 5].map((n, i) => `<img class="customer" style="animation-delay:-${i * 3}s" src="/assets/creatures/tile_000${n}.png" alt="">`).join('')}</div>`;
+  if (html !== lastScene) { lastScene = html; $('scene').innerHTML = html; }
+  $('bread').textContent = fmt(s.bread); // only touch the DOM on change, or animations restart
 }
 
 // --- loop: fixed 0.1s steps, 5s production_tick, autosave ---
