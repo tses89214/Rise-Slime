@@ -67,6 +67,13 @@ if (demo) {
 const openDlg = import.meta.env.DEV ? new URLSearchParams(location.search).get('open') : null; // dev only: ?open=helpdlg for screenshots
 if (openDlg) ($(openDlg) as HTMLDialogElement).showModal();
 
+// dev only (stripped from builds): link to the ops dashboard the collector serves, for demo side-by-side
+if (import.meta.env.DEV) {
+  const link = Object.assign(document.createElement('a'), { href: `http://${location.hostname}:3000/dashboard`, target: '_blank', textContent: 'ops dashboard ↗' });
+  link.style.cssText = 'position:fixed;left:0;bottom:0;z-index:10;padding:2px 8px;font:12px monospace;color:#fff;background:#0009;text-decoration:none';
+  document.body.append(link);
+}
+
 const rand = rng(Date.now()); // the core takes its randomness as an argument; the game seeds it from the clock
 const t0 = Date.now();
 emit?.('session_start', t0, { offline_seconds: offlineSeconds, is_new_player: isNew });
