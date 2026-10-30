@@ -56,8 +56,9 @@
 <section class="grid">
   <div class="card"><h2>Bread chain output / min</h2><div class="chart" id="c-prod"></div><div class="note">produced per station, all players</div></div>
   <div class="card"><h2>Station queues</h2><div class="chart" id="c-queue"></div><div class="note">input stock waiting, summed over players (rising = bottleneck)</div></div>
-  <div class="card"><h2>Player activity / min</h2><div class="chart" id="c-ops"></div><div class="note">active players, slimes bought, upgrades</div></div>
-  <div class="card"><h2>Pipeline health</h2><div class="chart" id="c-pipe"></div><div class="note">events/min and latency (ms). Bots stamp simulated time, so their latency can read negative; browser players use the real clock.</div></div>
+  <div class="card"><h2>Player activity / min</h2><div class="chart" id="c-ops"></div><div class="note">active players, slimes bought, upgrades, merges</div></div>
+  <div class="card"><h2>Late arrivals / min</h2><div class="chart" id="c-late"></div><div class="note">events sent more than 10 s after they happened (bots that went offline), counted by arrival minute; left: events, right: worst delay (s). Windows above still include them, re-emitted by Flink within 15 min.</div></div>
+  <div class="card" style="grid-column:1/-1"><h2>Pipeline health</h2><div class="chart" id="c-pipe"></div><div class="note">events/min and latency (ms). Bots stamp simulated time, so their latency can read negative; browser players use the real clock.</div></div>
 </section>
 
 <section class="grid">
@@ -130,13 +131,14 @@ async function refresh() {
     $('k-dup').textContent = n(d.pipeline.reduce((a, r) => a + Number(r.duplicates), 0));
     draw('c-prod', d.production, ['produced'], 'station', COLORS);
     draw('c-queue', d.production, ['queue'], 'station', COLORS);
-    draw('c-ops', d.ops, ['active', 'purchases', 'upgrades'], null, [COLORS.a, COLORS.b, COLORS.c]);
+    draw('c-ops', d.ops, ['active', 'purchases', 'upgrades', 'merges'], null, [COLORS.a, COLORS.b, COLORS.c, '#9B6BFF']);
+    draw('c-late', d.late, ['late', 'max_delay_s'], null, [COLORS.a, COLORS.b], 1);
     draw('c-pipe', d.pipeline, ['events', 'latency_ms'], null, [COLORS.a, COLORS.b], 1); // latency on the right axis
 
     table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['levels', (r) => n(r.levels)], ['ach.', (r) => r.achievements],
       ['', (r) => `<span class="${r.online ? 'on' : 'off'}" title="${r.online ? 'online' : 'away'}">${r.online ? '●' : '○'}</span>`]], d.richest);
     table('t-eff', [['player', (r) => r.player_id], ['persona', (r) => r.persona ?? 'human'], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
-    table('t-dead', [['time', (r) => r.at], ['error', (r) => esc(r.error.slice(0, 80))], ['raw', (r) => esc(r.raw)]], d.dead);
+    table('t-dead', [['time', (r) => r.at], ['error', (r) => esc(r.error.slice(0, 80))], ['raw', (r) => esc(r.snippet)]], d.dead);
 
     $('dot').className = '';
     $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');

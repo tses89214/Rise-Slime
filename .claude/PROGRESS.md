@@ -1,8 +1,10 @@
 # Progress
 
-_Last updated: 2026-10-30_
+_Last updated: 2026-10-30 (M3 done)_
 
 ## Status
+M3 done. Game: merge (3 same tier -> 1 higher), mutation traits, station slots + expansion, feature unlocks (see `docs/decisions/2026-10-30-m3-merge-rules.md`); schema v2 (`slime_merged`, `station_expanded`, `feature_unlocked`; v1 still valid); bots merge/expand and inject disconnects (`--disconnect-rate`, `--max-buffer`) so events arrive late. Pipeline: Flink dedups by `event_id`; windows accept late events for 15 min and re-emit (upsert-kafka sinks, ClickHouse `ReplacingMergeTree(version)`, read with FINAL); `late_1m` counts late arrivals by `sent_at`; `ops_1m` has merges/mutations/expansions. Verified on a 20-bot run with duplicates + malformed + disconnects: every closed window equals `events FINAL` (events 10542+200 in the still-open last minute = 10742; produced 4,544,495 = 4,544,495; merges 74 = 74; expansions 20 = 20). Dashboard: late-arrivals chart, merges series, duplicates KPI, latest dead letters. Pipeline diagrams in `docs/pipeline.md` (mermaid, not rendered/checked in a viewer). 184 tests, typecheck and build pass.
+Browser merge UI is a button; no tier/trait art, no Slimes tab.
 M3 part 1 done: Flink dedups by `event_id` (`events_dedup` view, `ROW_NUMBER() ... rn = 1`, state TTL 1 h). `production_1m` / `ops_1m` read the deduped stream; `pipeline_1m.events` = distinct ids and `pipeline_1m.duplicates` = copies beyond the first (new column, also through `ch_pipeline_1m` and `kafka_pipeline_1m`). Verified on a full replay: every closed window's event count equals `events FINAL`, total produced 56,846 = 56,846, duplicates 24. `late` stays 0 (SQL windows drop late rows with no side output; would need DataStream/PyFlink). Existing ClickHouse volumes need the `kafka_pipeline_1m` table + MV recreated (done by hand here; fresh `init.sql` has it).
 Dashboard got a "Latest dead letters" table (`dead` query in `src/collector/dashboard.ts`, `t-dead` in `dashboard/index.html`; raw text is HTML-escaped). Typecheck and 162 tests pass, but the query and page are NOT verified against a live ClickHouse (Docker was off): check once the stack is up.
 Dashboard has an All / Browser / Bots switch (`?client=`); `production_1m` and `pipeline_1m` carry `client`. `production_tick` now also carries `slimes_owned` and `achievements_unlocked` (state snapshot, see `docs/decisions/2026-10-29-tick-state-fields.md`). Offline progress no longer leaks into the next tick (bug fixed in `applyOffline`, test added). 162 tests, typecheck pass.
@@ -18,8 +20,9 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - `scripts/demo.sh`: dev server + seeded demo state.
 
 ## Next
-1. M3 rest: late-event counting (needs side output), schema change (merge/mutation), dashboard duplicates panel (data is ready: `pipeline_1m.duplicates`).
-2. Dashboard polish: duplicate panel (needs M3 dedup first), time-range picker. DLQ table and browser/bot switch done.
+1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site.
+2. Dashboard: time-range picker; per-schema-version panel.
+3. Checkpoints/savepoints so a Flink resubmit does not replay all of Kafka.
 
 ## Open / not verified
 - Resubmitting `job.sql` replays all of Kafka (no checkpoints/savepoints, `earliest-offset`): `events` gets duplicate rows (ReplacingMergeTree collapses them at merge; dashboard KPIs use count(), so they read high until then) and the plain-MergeTree `production_1m` / `pipeline_1m` / `ops_1m` get duplicate windows. Truncate those three (or `down -v`) before resubmitting.
@@ -27,3 +30,9 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - Right after `docker compose up`, the first collector posts hit topic auto-create errors (kafkajs ERROR logs for a few seconds); events flow afterwards. From-scratch start (`down -v`, `up`, init.sql, collector, bots, flink-sql) verified once.
 - Collector prints a `TimeoutNegativeWarning` at startup (cause not investigated, harmless so far).
 - Not built: Phaser, bot `disconnect_rate`/`max_buffer`, Level-up/squish sounds.
+- Deleting a Kafka topic under a ClickHouse Kafka-engine table leaves its consumer stale (found with `ch.late_1m`): recreate the `kafka_*` table + MV and reset the group offset (`kafka-consumer-groups.sh --reset-offsets`). Same applies after changing a sink to upsert.
+- Windows still open when a run ends (no later event moves the watermark) are not emitted; compare totals excluding the newest minute.
+- Events older than the 15 min allowed lateness, or a duplicate after the 1 h dedup state expires, are not repaired by Flink; the raw `events` table still has them.
+- Replaying old Kafka data after new data (a resubmit) reads partitions out of global order, so windows older than the lateness are dropped; observed: `late_1m` is only meaningful for live runs.
+- `table.exec.emit.*` late-fire settings are a legacy-but-working Flink 1.20 feature; if a Flink upgrade removes them the fallback is to widen the watermark delay.
+- Mermaid diagrams in docs/pipeline.md were not rendered here.

@@ -19,3 +19,7 @@ Game/spec decisions live in `docs/decisions/`. This file holds the infrastructur
 ## 2026-10-30
 - **Dedup in Flink SQL with `ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY event_time) = 1`**, as a view that sums/counts read. Ordering by event_time keeps the rowtime attribute so windows still work. Duplicates are counted separately in `pipeline_1m` as `COUNT(*) - COUNT(DISTINCT event_id)` on the raw typed stream (a duplicate has the same event_time, so it lands in the same window). `table.exec.state.ttl = 1 h` bounds dedup state; a copy arriving later slips through Flink, and ClickHouse's ReplacingMergeTree still collapses it in `events`.
 - **`late` stays 0.** Flink SQL group windows drop late rows silently; counting them needs a side output (DataStream/PyFlink). Not worth it before M3 asks for it.
+- **Late events: allowed lateness + upsert, not a wider watermark.** A 10 min watermark would delay every window by 10 min. Instead windows re-emit on each late row (15 min allowed lateness); sinks are `upsert-kafka` keyed by the window, ClickHouse `ReplacingMergeTree(version)` where version = rows in the window (monotonic, so no clock needed). Cost: every read of those tables needs `FINAL`.
+- **`late_1m` is windowed by `sent_at`.** Late rows are exactly what event-time windows hide, so counting them needs the other clock. `pipeline_1m.late` was removed (it could only ever read 0).
+- **M3 game rules and schema v2**: see `docs/decisions/2026-10-30-m3-merge-rules.md`.
+

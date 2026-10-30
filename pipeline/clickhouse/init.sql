@@ -40,7 +40,8 @@ SELECT
     payload
 FROM slime.kafka_events;
 
--- production_tick per station per minute. One row per finished window: plain MergeTree.
+-- production_tick per station per minute. A window is re-emitted when late events arrive (Flink allowed lateness), so rows
+-- are versioned: ReplacingMergeTree keeps the highest `version` (= events in the window, which only grows). Read with FINAL.
 -- produced / consumed are sums over players; slimes / input_stock are per-player averages over the minute's ticks
 -- (summing every tick would multiply them by the tick count); multiply by players for a fleet total.
 CREATE TABLE IF NOT EXISTS slime.production_1m (
@@ -51,38 +52,39 @@ CREATE TABLE IF NOT EXISTS slime.production_1m (
     slimes       Float64,
     produced     UInt64,
     consumed     UInt64,
-    input_stock  Float64
-) ENGINE = MergeTree ORDER BY (window_start, client, station);
+    input_stock  Float64,
+    version      UInt64
+) ENGINE = ReplacingMergeTree(version) ORDER BY (window_start, client, station);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_production_1m (
-    window_start String, client String, station String, players UInt32, slimes Float64, produced UInt64, consumed UInt64, input_stock Float64
+    window_start String, client String, station String, players UInt32, slimes Float64, produced UInt64, consumed UInt64, input_stock Float64, version UInt64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.production_1m',
     kafka_group_name = 'clickhouse-production-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_production_1m_mv TO slime.production_1m AS
-SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, station, players, slimes, produced, consumed, input_stock
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, station, players, slimes, produced, consumed, input_stock, version
 FROM slime.kafka_production_1m;
 
--- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates = copies beyond the first per event_id (counted by Flink); late stays 0: SQL windows drop late rows without a side output.
+-- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates = copies beyond the first per event_id (counted by Flink). Late arrivals are in late_1m.
 CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
     window_start   DateTime('UTC'),
     client         LowCardinality(String),
     event_type     LowCardinality(String),
     events         UInt64,
     duplicates     UInt64 DEFAULT 0,
-    late           UInt64 DEFAULT 0,
     avg_latency_ms Float64,
-    max_latency_ms Int64     -- can be negative: bots in fast-forward stamp event_time ahead of ingestion
-) ENGINE = MergeTree ORDER BY (window_start, client, event_type);
+    max_latency_ms Int64,    -- can be negative: bots in fast-forward stamp event_time ahead of ingestion
+    version        UInt64    -- rows seen in the window (copies included); highest wins, read with FINAL
+) ENGINE = ReplacingMergeTree(version) ORDER BY (window_start, client, event_type);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_pipeline_1m (
-    window_start String, client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64
+    window_start String, client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64, version UInt64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.pipeline_1m',
     kafka_group_name = 'clickhouse-pipeline-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_pipeline_1m_mv TO slime.pipeline_1m
-    (window_start DateTime('UTC'), client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
-SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, event_type, events, duplicates, avg_latency_ms, max_latency_ms
+    (window_start DateTime('UTC'), client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64, version UInt64) AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, event_type, events, duplicates, avg_latency_ms, max_latency_ms, version
 FROM slime.kafka_pipeline_1m;
 
 -- Rejected events. Read straight from the collector's events.dlq topic (nothing to compute, so no Flink job).
@@ -119,13 +121,17 @@ CREATE TABLE IF NOT EXISTS slime.ops_1m (
     station_upgrades      UInt32,
     achievements_unlocked UInt32,
     bread_sold            UInt64,
-    coins_earned          UInt64
-) ENGINE = MergeTree ORDER BY (window_start, client);
+    coins_earned          UInt64,
+    slimes_merged         UInt32,   -- M3 (schema v2)
+    mutations             UInt32,   -- merges that produced a brand-new trait
+    station_expansions    UInt32,
+    version               UInt64    -- rows seen in the window; highest wins, read with FINAL
+) ENGINE = ReplacingMergeTree(version) ORDER BY (window_start, client);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_ops_1m (
     window_start String, client String, active_players UInt32, new_players UInt32, sessions_started UInt32,
     sessions_ended UInt32, avg_session_seconds Float64, slimes_purchased UInt32, station_upgrades UInt32,
-    achievements_unlocked UInt32, bread_sold UInt64, coins_earned UInt64
+    achievements_unlocked UInt32, bread_sold UInt64, coins_earned UInt64, slimes_merged UInt32, mutations UInt32, station_expansions UInt32, version UInt64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.ops_1m',
     kafka_group_name = 'clickhouse-ops-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
@@ -210,3 +216,24 @@ FROM days CROSS JOIN pd
 WHERE pd.day <= d AND pd.day > d - 30
 GROUP BY day, client
 ORDER BY day, client;
+
+-- Late arrivals per minute, written by Flink. Windowed by sent_at (when the client sent it), not event_time: a late event
+-- is dropped from the event-time windows above (production_1m etc. undercount by exactly these), so this is where it
+-- shows up. late = sent_at - event_time above the 10 s watermark delay (a bot that was offline, a tab that was asleep).
+CREATE TABLE IF NOT EXISTS slime.late_1m (
+    window_start   DateTime('UTC'),
+    client         LowCardinality(String),
+    events         UInt64,
+    late_events    UInt64,
+    max_delay_s    Int64,
+    version        UInt64
+) ENGINE = ReplacingMergeTree(version) ORDER BY (window_start, client);
+
+CREATE TABLE IF NOT EXISTS slime.kafka_late_1m (
+    window_start String, client String, events UInt64, late_events UInt64, max_delay_s Int64, version UInt64
+) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.late_1m',
+    kafka_group_name = 'clickhouse-late-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_late_1m_mv TO slime.late_1m AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, * EXCEPT window_start
+FROM slime.kafka_late_1m;

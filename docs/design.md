@@ -552,6 +552,8 @@ M1 共 8 種事件：玩家動作逐筆記錄，生產狀態每 5 秒彙總一�
 - 離線收益上限 8 小時（放置遊戲常見做法，數值暫定）
 - M1 各站庫存不設上限，堆積量直接反映瓶頸
 
+**M3 新增（schema_version 2）**：新事件 `slime_merged`（`slime_id`、`material_ids`、`new_tier`、`trait`、`mutated`、`mutation_chance`）、`station_expanded`（`station`、`new_slots`、`cost`、`coins_after`）、`feature_unlocked`（`feature_id`）；`slime_assigned` 多出可選的 `tier`、`trait`。v1 事件仍然有效。規則細節見 `docs/decisions/2026-10-30-m3-merge-rules.md`，資料流見 `docs/pipeline.md`。
+
 **細粒度模式**：壓力測試時開啟，改為每產出一件就發一筆 `production_unit`（`station`、`item`、`qty`），資料量約放大數十倍。
 
 **兩種「遲到」**

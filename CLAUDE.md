@@ -37,8 +37,7 @@ and add a short entry to `docs/decisions/`.
 
 ## Current milestone
 
-M1: one product chain (wheat → flour → bread), three stations, plain slimes,
-manual assignment, fixed price; bots send events into Kafka.
+M1 and M2 done. M3 (merge + mutation, schema v2, dedup, late events, DLQ) done. Next: M4 (see `docs/design.md`).
 
 ## Architecture (from the spec)
 
@@ -62,25 +61,26 @@ npm run build                    # itch.io build: no event-sending code
 docker compose up -d             # Kafka x2 + Kafka UI (:8080) + ClickHouse (:8123) + Flink (:8081); data kept in volumes, `down -v` wipes
 docker compose --profile submit run --rm flink-sql   # (re)submit pipeline/flink/job.sql; cancel the old job in the Flink UI first
 KAFKA_BROKERS=localhost:9092 npm run collector   # unset KAFKA_BROKERS = print to stdout; also serves the ops dashboard at http://localhost:3000/dashboard
-npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # or --out file.jsonl; --speed 60 for real-time pacing
+npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # or --out file.jsonl; --speed 60 for real-time pacing; --disconnect-rate/--max-buffer for late events
 ```
 
 ## Layout
 
 - `src/core/achievements.ts` — achievement catalogue as pure predicates on `State`; `checkAchievements` is idempotent and records unlocks in `state.achievements`.
-- `src/core/sim.ts` — pure simulation (stations, costs, offline progress, seeded `rng`). No clock, no `Math.random`.
+- `src/core/sim.ts` — pure simulation (stations, costs, offline progress, M3 merge/traits/slots/feature unlocks, save `migrate`, seeded `rng`). No clock, no `Math.random`.
 - `src/events/` — zod `GameEvent` schema (single source of truth) + `makeEmitter` (stamps shared fields, UUID v7; caller passes `now`).
 - `src/bots/` — `runBot` (personas: random_assigner, optimizer, quitter) and CLI with duplicate/malformed fault injection.
 - `src/collector/` — Fastify `POST /events`; `route()` sends invalid events to `events.dlq`.
 - `src/collector/dashboard.ts` + `dashboard/index.html` — read-only `GET /api/dashboard` (fixed ClickHouse queries, incl. latest dead letters) and the uPlot ops dashboard page.
-- `pipeline/clickhouse/init.sql` (tables, Kafka-engine intake, leaderboard/efficiency/DAU views; runs on first start only), `pipeline/flink/job.sql` (one statement set: events -> `ch.events`, 1-min windows -> `ch.production_1m` / `ch.pipeline_1m` / `ch.ops_1m`).
+- `docs/pipeline.md` — mermaid maps of the services and of every table-to-table hop; read it before touching the pipeline.
+- `pipeline/clickhouse/init.sql` (tables, Kafka-engine intake, leaderboard/efficiency/DAU views; runs on first start only), `pipeline/flink/job.sql` (one statement set: events -> `ch.events`; deduped 1-min windows with 15 min allowed lateness -> upsert topics `ch.production_1m` / `ch.pipeline_1m` / `ch.ops_1m`; `ch.late_1m` by `sent_at`). Windowed ClickHouse tables are `ReplacingMergeTree(version)`: read them with `FINAL`.
 - `src/game/` (`main.ts` state/render/loop; `audio.ts`, `customers.ts`, `telemetry.ts`, `util.ts`) + `index.html` — plain DOM + CSS-sprite UI (no Phaser), localStorage save + offline progress. Scene is built once; render() caches element refs and only writes text/classes/HTML that changed (otherwise CSS animations restart and layout is invalidated), and skips drawing while the tab is hidden. Customers are small async loops (timers + CSS transforms); each real sale sends one through the shop door. Sprite sheets are scaled by integers (slimes x3; sheet rows = colour, columns = frames, see `assets/original/*.json`). Slime colour follows the job (cosmetic in M1). Art is sized in `--u` (3px desktop, 2px below 1100px), integer only; `?demo=farm,mill,bakery,lounge` seeds a state in dev for screenshots.
 - `assets/` is Vite's `publicDir`: served at `/original`, `/fonts`, `/audio`.
 - `tools/sprites/` — sprite generator scripts.
 
 ## Repo state
 
-M1 first version done: core sim, events, bots, collector, browser game with original art. Also done: achievements (UI + `achievement_unlocked` event, bots emit it), production popups, customers leaving with bread. Not yet: Phaser, bot `disconnect_*`/`max_buffer` fault injection, Flink/ClickHouse/dashboard (M2), the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.
+M1 first version done: core sim, events, bots, collector, browser game with original art. Also done: achievements (UI + `achievement_unlocked` event, bots emit it), production popups, customers leaving with bread. Not yet: Phaser, tier/trait art and the Slimes/Upgrades tabs (merge/expand are plain buttons), M4, the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.
 
 ## 每次會話流程
 

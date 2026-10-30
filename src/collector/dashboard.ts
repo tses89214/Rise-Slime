@@ -18,12 +18,13 @@ export function dashboardSql(minutes: number, client: ClientFilter) {
   const dead = client === 'all' ? '1' : `JSONExtractString(raw, 'client') = '${client}'`;
   const since = `window_start > now() - INTERVAL ${minutes} MINUTE AND ${c}`;
   return {
-    production: `SELECT toUnixTimestamp(window_start) t, station, sum(produced) produced, round(sum(input_stock * players)) queue FROM slime.production_1m WHERE ${since} GROUP BY t, station ORDER BY t`,
-    ops: `SELECT toUnixTimestamp(window_start) t, sum(active_players) active, sum(slimes_purchased) purchases, sum(station_upgrades) upgrades, sum(coins_earned) coins FROM slime.ops_1m WHERE ${since} GROUP BY t ORDER BY t`,
-    pipeline: `SELECT toUnixTimestamp(window_start) t, sum(p.events) events, round(sum(p.avg_latency_ms * p.events) / sum(p.events)) latency_ms, sum(p.duplicates) duplicates, sum(p.late) late FROM slime.pipeline_1m AS p WHERE ${since} GROUP BY t ORDER BY t`,
+    production: `SELECT toUnixTimestamp(window_start) t, station, sum(produced) produced, round(sum(input_stock * players)) queue FROM slime.production_1m FINAL WHERE ${since} GROUP BY t, station ORDER BY t`,
+    ops: `SELECT toUnixTimestamp(window_start) t, sum(active_players) active, sum(slimes_purchased) purchases, sum(station_upgrades) upgrades, sum(coins_earned) coins, sum(slimes_merged) merges, sum(mutations) mutations FROM slime.ops_1m FINAL WHERE ${since} GROUP BY t ORDER BY t`,
+    pipeline: `SELECT toUnixTimestamp(window_start) t, sum(p.events) events, round(sum(p.avg_latency_ms * p.events) / sum(p.events)) latency_ms, sum(p.duplicates) duplicates FROM slime.pipeline_1m AS p FINAL WHERE ${since} GROUP BY t ORDER BY t`,
+    late: `SELECT toUnixTimestamp(window_start) t, sum(late_events) late, max(max_delay_s) max_delay_s FROM slime.late_1m FINAL WHERE ${since} GROUP BY t ORDER BY t`,
     richest: `SELECT player_id, bot_persona persona, round(coins_now) coins, slimes_owned slimes, achievements_unlocked achievements, station_levels levels, online FROM slime.leaderboard WHERE ${c} LIMIT 10`,
     efficiency: `SELECT player_id, bot_persona persona, round(earned) coins_earned, round(coins_per_min, 1) per_min, round(coins_per_min_per_slime, 2) per_slime FROM slime.efficiency WHERE coins_per_min IS NOT NULL AND ${c} LIMIT 10`,
-    dead: `SELECT formatDateTime(received_at, '%H:%i:%S') at, error, substring(raw, 1, 120) raw FROM slime.dead_letters WHERE ${dead} ORDER BY received_at DESC LIMIT 8`,
+    dead: `SELECT formatDateTime(received_at, '%H:%i:%S') at, error, substring(raw, 1, 120) snippet FROM slime.dead_letters WHERE ${dead} ORDER BY received_at DESC LIMIT 8`,
     kpi: `SELECT (SELECT countIf(online) FROM slime.leaderboard WHERE ${c}) online, (SELECT count() FROM slime.events WHERE ${c}) events,
       (SELECT count() FROM slime.dead_letters WHERE ${dead}) dead,
       uniqIf(player_id, event_time > now() - INTERVAL 1 DAY) dau, uniqIf(player_id, event_time > now() - INTERVAL 7 DAY) wau, uniqIf(player_id, event_time > now() - INTERVAL 30 DAY) mau
