@@ -64,6 +64,10 @@
   <div class="card"><h2>Most efficient (last hour)</h2><table id="t-eff"></table></div>
 </section>
 
+<section class="grid">
+  <div class="card" style="grid-column:1/-1"><h2>Latest dead letters</h2><table id="t-dead"></table><div class="note">rejected by the collector's schema check, newest first</div></div>
+</section>
+
 <script src="/dashboard/uplot.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -109,6 +113,7 @@ function table(id, cols, rows) {
     (rows.length ? rows.map((r) => '<tr>' + cols.map((c) => `<td>${c[1](r)}</td>`).join('') + '</tr>').join('') : `<tr><td colspan="${cols.length}" class="off">no data</td></tr>`);
 }
 
+const esc = (s) => s.replace(/[&<>"]/g, (c) => '&#' + c.charCodeAt(0) + ';'); // raw dead letters are untrusted input
 const n = (x) => Number(x).toLocaleString('en-US');
 async function refresh() {
   try {
@@ -129,6 +134,7 @@ async function refresh() {
     table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['levels', (r) => n(r.levels)], ['ach.', (r) => r.achievements],
       ['', (r) => `<span class="${r.online ? 'on' : 'off'}" title="${r.online ? 'online' : 'away'}">${r.online ? '●' : '○'}</span>`]], d.richest);
     table('t-eff', [['player', (r) => r.player_id], ['persona', (r) => r.persona ?? 'human'], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
+    table('t-dead', [['time', (r) => r.at], ['error', (r) => esc(r.error.slice(0, 80))], ['raw', (r) => esc(r.raw)]], d.dead);
 
     $('dot').className = '';
     $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');

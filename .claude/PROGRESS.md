@@ -1,8 +1,9 @@
 # Progress
 
-_Last updated: 2026-10-29 (clocked out)_
+_Last updated: 2026-10-30_
 
 ## Status
+Dashboard got a "Latest dead letters" table (`dead` query in `src/collector/dashboard.ts`, `t-dead` in `dashboard/index.html`; raw text is HTML-escaped). Typecheck and 162 tests pass, but the query and page are NOT verified against a live ClickHouse (Docker was off): check once the stack is up.
 Dashboard has an All / Browser / Bots switch (`?client=`); `production_1m` and `pipeline_1m` carry `client`. `production_tick` now also carries `slimes_owned` and `achievements_unlocked` (state snapshot, see `docs/decisions/2026-10-29-tick-state-fields.md`). Offline progress no longer leaks into the next tick (bug fixed in `applyOffline`, test added). 162 tests, typecheck pass.
 M2 pipeline + dashboard first version done: bots/browser -> collector -> Kafka -> Flink -> Kafka -> ClickHouse -> `http://localhost:3000/dashboard` (KPIs, per-station output and queues, activity, pipeline health, richest and most efficient players). Browser telemetry verified in headless Chrome: session_start/production_tick/achievement_unlocked/session_end land in ClickHouse with client=browser.
 M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated, data in volumes) -> Kafka UI.
@@ -17,7 +18,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 
 ## Next
 1. M3: Flink-side dedup, late events, schema change (merge/mutation). `pipeline_1m.duplicates/late` are still 0.
-2. Dashboard polish: DLQ/duplicate panels, time-range picker, a way to see browser vs bot.
+2. Dashboard polish: duplicate panel (needs M3 dedup first), time-range picker. DLQ table and browser/bot switch done.
 
 ## Open / not verified
 - Resubmitting `job.sql` replays all of Kafka (no checkpoints/savepoints, `earliest-offset`): `events` gets duplicate rows (ReplacingMergeTree collapses them at merge; dashboard KPIs use count(), so they read high until then) and the plain-MergeTree `production_1m` / `pipeline_1m` / `ops_1m` get duplicate windows. Truncate those three (or `down -v`) before resubmitting.
