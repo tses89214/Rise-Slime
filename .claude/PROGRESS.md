@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-30 (clocked out, M3 done + collector moved to Python)_
+_Last updated: 2026-10-30 (clocked out, learning-mode docs added; code unchanged)_
 
 ## Status
 Collector rewritten in Python (FastAPI, `collector/main.py`); validates against `src/events/event.schema.json` exported from zod (`npm run schema`, vitest checks it is fresh). Tests: `npm test` 173 (the old route tests moved to pytest), `npm run test:collector` 15, typecheck and build pass. Verified end to end after the rewrite (full stack up, 10 bots real-time): collector -> Kafka -> Flink -> ClickHouse (2457 new events), DLQ rows arrive, `/api/dashboard` returns all 8 blocks. Not reconciled row for row. Stack was shut down with `down` (volumes kept). Dev-only 'ops dashboard' link at the game's bottom-left. Bots/core stay TS (Node is still needed for Vite, Vitest and bots). Next: M4.
@@ -18,11 +18,17 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - `docker-compose.yml`: Kafka UI (http://localhost:8080), listeners WEB_GAME/DOCKER/CONTROLLER, volumes, broker-only `kafka2` (replication factor 2).
 - `scripts/demo.sh`: dev server + seeded demo state.
 
+## 學習模式(使用者學 Kafka / Flink / ClickHouse)
+使用者要求把整條數據鏈路教到沒有問題為止。教材與進度都在 `docs/learning.md`(開頭有「學習進度」表,下次從那裡接)。做法:一課一課教、每課附練習題、逐題檢討、教完寫進該檔。本次沒有改程式,只改文件:`docs/learning.md`(新)、`docs/pipeline.md` 的 tables 圖加上處理線編號、`docs/pipeline-tables.png` 重畫(版面變成直向,用預設 mermaid 設定,舊的橫向設定找不到)。
+下次接續:練習題第 3–9 題逐題檢討 → 第 3 課剩下的 state、changelog → 第 4 課 `job.sql` 逐段 → 第 5 課 ClickHouse → 第 6 課 client 時鐘問題。
+
 ## Next
 1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site.
 2. Dashboard: time-range picker; per-schema-version panel.
 
 ## Open / not verified
+- (學習時讀碼發現,未實測)watermark 與視窗用 client 填的 `event_time` / `sent_at`,collector 只驗格式不驗時間。一筆時間比其他玩家快很多的事件會把 watermark 推到未來,其他玩家超過 15 分鐘 allowed lateness 的事件被視窗默默丟掉(不進 DLQ,`late_1m` 也用 client 的 `sent_at`,看不到)。`ingested_at` 是唯一可信時鐘。可能的修法:collector 檢查 `event_time` 與 `ingested_at` 的差距,超出範圍進 DLQ;或視窗改用 `ingested_at`。需要先實測再決定。
+- (同上)collector 對 body 不是 JSON 回 400,不進 DLQ,與「invalid events go to DLQ, never silently dropped」不一致;瀏覽器端 `fetch(...).catch(() => {})` 也沒有重試或暫存,Kafka 或 collector 掛掉時事件永久遺失(只有 bot 有斷線暫存)。
 - Resubmitting `job.sql` replays all of Kafka (no checkpoints/savepoints, `earliest-offset`): `events` gets duplicate rows (ReplacingMergeTree collapses them at merge; dashboard KPIs use count(), so they read high until then) and the plain-MergeTree `production_1m` / `pipeline_1m` / `ops_1m` get duplicate windows. Truncate those three (or `down -v`) before resubmitting.
 - `player_state` was changed to take slimes/levels from the latest `production_tick` (purchase/achievement events are missing for progress made before telemetry was on). Existing rows were backfilled by running the MV's SELECT once; a fresh `init.sql` start has no backfill need. Achievement totals are not on the dashboard for the same reason: the game would have to send a state snapshot.
 - Right after `docker compose up`, the first collector posts hit topic auto-create errors (kafkajs ERROR logs for a few seconds); events flow afterwards. From-scratch start (`down -v`, `up`, init.sql, collector, bots, flink-sql) verified once.

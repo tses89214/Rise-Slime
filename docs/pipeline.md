@@ -70,18 +70,18 @@ flowchart TB
   classDef html fill:#CFE6FF,stroke:#2F6FB5,color:#0d2a4a,stroke-width:2px
 
   t_events[("Kafka<br/>events")]:::kafka
-  t_dlq[("Kafka<br/>events.dlq")]:::kafka
+  t_dlq[("Kafka<br/>events.dlq<br/>(line 6, no Flink)")]:::kafka
 
   subgraph flinkjob["Flink job.sql"]
-    raw{{"events_raw<br/>raw JSON line"}}:::flink
-    typed{{"events_typed<br/>rowtime = event_time<br/>watermark -10 s"}}:::flink
-    sent{{"events_sent<br/>rowtime = sent_at"}}:::flink
-    dedup{{"events_dedup (view)<br/>first row per event_id<br/>state TTL 1 h"}}:::flink
-    o_events{{"sink ch_events"}}:::flink
-    o_prod{{"sink ch_production_1m<br/>upsert"}}:::flink
-    o_ops{{"sink ch_ops_1m<br/>upsert"}}:::flink
-    o_pipe{{"sink ch_pipeline_1m<br/>upsert"}}:::flink
-    o_late{{"sink ch_late_1m<br/>upsert"}}:::flink
+    raw{{"events_raw<br/>raw JSON line<br/>(line 1)"}}:::flink
+    typed{{"events_typed<br/>rowtime = event_time<br/>watermark -10 s<br/>(lines 2, 3, 4)"}}:::flink
+    sent{{"events_sent<br/>rowtime = sent_at<br/>(line 5)"}}:::flink
+    dedup{{"events_dedup (view)<br/>first row per event_id<br/>state TTL 1 h<br/>(lines 2, 4)"}}:::flink
+    o_events{{"line 1: sink ch_events"}}:::flink
+    o_prod{{"line 2: sink ch_production_1m<br/>upsert"}}:::flink
+    o_ops{{"line 4: sink ch_ops_1m<br/>upsert"}}:::flink
+    o_pipe{{"line 3: sink ch_pipeline_1m<br/>upsert"}}:::flink
+    o_late{{"line 5: sink ch_late_1m<br/>upsert"}}:::flink
     raw -->|flatten| o_events
     typed --> dedup
     dedup -->|"1-min window<br/>per client, station"| o_prod
@@ -141,6 +141,8 @@ flowchart TB
   dl --> p6
   dl --> p7
 ```
+
+"Line N" is a processing line: a path from a source to one ClickHouse table. Six lines in total (five in the Flink job, plus the dead-letter path); the walkthrough table is in [learning.md](learning.md#處理線總覽).
 
 ## 3. Why it is built this way
 

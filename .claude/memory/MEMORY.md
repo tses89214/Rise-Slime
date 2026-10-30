@@ -4,3 +4,4 @@
 - [Asset download notes](reference-asset-download.md) — OGA and itch.io fetch flow
 - [Verify UI visually](feedback-verify-ui-visually.md) — headless Chrome screenshot after every UI change
 - [Docs and explanations](feedback-docs-and-explanations.md) — update docs with the work, colour/shape-coded diagrams, full content inside cards
+- [Teaching style](feedback-teaching-style.md) — lesson by lesson into docs/learning.md, quiz then review one by one, flag unverified claims
