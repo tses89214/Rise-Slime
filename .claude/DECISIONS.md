@@ -23,3 +23,5 @@ Game/spec decisions live in `docs/decisions/`. This file holds the infrastructur
 - **`late_1m` is windowed by `sent_at`.** Late rows are exactly what event-time windows hide, so counting them needs the other clock. `pipeline_1m.late` was removed (it could only ever read 0).
 - **M3 game rules and schema v2**: see `docs/decisions/2026-10-30-m3-merge-rules.md`.
 - **Resubmit via savepoint.** Checkpoints + a shared `flink-state` volume; `scripts/flink-restart.sh` stops with a savepoint and starts the new job with `-Dexecution.savepoint.path`, so editing job.sql does not replay Kafka. Only works while the operator graph is compatible; otherwise cancel and replay.
+
+- **Collector in Python (FastAPI)**, bots and core stay TS; schema stays single-sourced in zod and is exported as JSON Schema. Details: `docs/decisions/2026-10-30-python-collector.md`. Porting bots was rejected: it would duplicate the game rules.
