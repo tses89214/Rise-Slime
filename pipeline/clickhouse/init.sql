@@ -63,7 +63,7 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_production_1m_mv TO slime.pro
 SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, station, players, slimes, produced, consumed, input_stock
 FROM slime.kafka_production_1m;
 
--- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates/late stay 0 until M3.
+-- Pipeline health per event type per minute. latency = ingested_at - event_time. duplicates = copies beyond the first per event_id (counted by Flink); late stays 0: SQL windows drop late rows without a side output.
 CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
     window_start   DateTime('UTC'),
     client         LowCardinality(String),
@@ -76,13 +76,13 @@ CREATE TABLE IF NOT EXISTS slime.pipeline_1m (
 ) ENGINE = MergeTree ORDER BY (window_start, client, event_type);
 
 CREATE TABLE IF NOT EXISTS slime.kafka_pipeline_1m (
-    window_start String, client String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64
+    window_start String, client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64
 ) ENGINE = Kafka SETTINGS kafka_broker_list = 'kafka:29092,kafka2:29092', kafka_topic_list = 'ch.pipeline_1m',
     kafka_group_name = 'clickhouse-pipeline-1m', kafka_format = 'JSONEachRow', kafka_num_consumers = 1;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS slime.kafka_pipeline_1m_mv TO slime.pipeline_1m
-    (window_start DateTime('UTC'), client String, event_type String, events UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
-SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, event_type, events, avg_latency_ms, max_latency_ms
+    (window_start DateTime('UTC'), client String, event_type String, events UInt64, duplicates UInt64, avg_latency_ms Float64, max_latency_ms Int64) AS
+SELECT parseDateTimeBestEffort(window_start, 'UTC') AS window_start, client, event_type, events, duplicates, avg_latency_ms, max_latency_ms
 FROM slime.kafka_pipeline_1m;
 
 -- Rejected events. Read straight from the collector's events.dlq topic (nothing to compute, so no Flink job).

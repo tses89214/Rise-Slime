@@ -15,3 +15,7 @@ Game/spec decisions live in `docs/decisions/`. This file holds the infrastructur
 - **DLQ bypasses Flink.** `events.dlq` already holds `{raw, error, ingested_at}`; ClickHouse's Kafka engine reads it directly into `dead_letters`. Add Flink there only if M3 needs to correlate dead letters with windows.
 - **`client` is a dimension of the Flink aggregates** (`production_1m`, `pipeline_1m`; `ops_1m` already had it) so the dashboard can split human players from bots without scanning `events`. Cost: one more group-by column per window.
 - **Demo data was wiped once (`down -v`)** after a polluted offline-progress tick sat in Kafka and every Flink resubmit replayed it. No checkpoints yet, so a resubmit replays history; see PROGRESS.
+
+## 2026-10-30
+- **Dedup in Flink SQL with `ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY event_time) = 1`**, as a view that sums/counts read. Ordering by event_time keeps the rowtime attribute so windows still work. Duplicates are counted separately in `pipeline_1m` as `COUNT(*) - COUNT(DISTINCT event_id)` on the raw typed stream (a duplicate has the same event_time, so it lands in the same window). `table.exec.state.ttl = 1 h` bounds dedup state; a copy arriving later slips through Flink, and ClickHouse's ReplacingMergeTree still collapses it in `events`.
+- **`late` stays 0.** Flink SQL group windows drop late rows silently; counting them needs a side output (DataStream/PyFlink). Not worth it before M3 asks for it.

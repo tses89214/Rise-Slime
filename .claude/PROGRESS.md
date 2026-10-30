@@ -3,6 +3,7 @@
 _Last updated: 2026-10-30_
 
 ## Status
+M3 part 1 done: Flink dedups by `event_id` (`events_dedup` view, `ROW_NUMBER() ... rn = 1`, state TTL 1 h). `production_1m` / `ops_1m` read the deduped stream; `pipeline_1m.events` = distinct ids and `pipeline_1m.duplicates` = copies beyond the first (new column, also through `ch_pipeline_1m` and `kafka_pipeline_1m`). Verified on a full replay: every closed window's event count equals `events FINAL`, total produced 56,846 = 56,846, duplicates 24. `late` stays 0 (SQL windows drop late rows with no side output; would need DataStream/PyFlink). Existing ClickHouse volumes need the `kafka_pipeline_1m` table + MV recreated (done by hand here; fresh `init.sql` has it).
 Dashboard got a "Latest dead letters" table (`dead` query in `src/collector/dashboard.ts`, `t-dead` in `dashboard/index.html`; raw text is HTML-escaped). Typecheck and 162 tests pass, but the query and page are NOT verified against a live ClickHouse (Docker was off): check once the stack is up.
 Dashboard has an All / Browser / Bots switch (`?client=`); `production_1m` and `pipeline_1m` carry `client`. `production_tick` now also carries `slimes_owned` and `achievements_unlocked` (state snapshot, see `docs/decisions/2026-10-29-tick-state-fields.md`). Offline progress no longer leaks into the next tick (bug fixed in `applyOffline`, test added). 162 tests, typecheck pass.
 M2 pipeline + dashboard first version done: bots/browser -> collector -> Kafka -> Flink -> Kafka -> ClickHouse -> `http://localhost:3000/dashboard` (KPIs, per-station output and queues, activity, pipeline health, richest and most efficient players). Browser telemetry verified in headless Chrome: session_start/production_tick/achievement_unlocked/session_end land in ClickHouse with client=browser.
@@ -17,7 +18,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - `scripts/demo.sh`: dev server + seeded demo state.
 
 ## Next
-1. M3: Flink-side dedup, late events, schema change (merge/mutation). `pipeline_1m.duplicates/late` are still 0.
+1. M3 rest: late-event counting (needs side output), schema change (merge/mutation), dashboard duplicates panel (data is ready: `pipeline_1m.duplicates`).
 2. Dashboard polish: duplicate panel (needs M3 dedup first), time-range picker. DLQ table and browser/bot switch done.
 
 ## Open / not verified

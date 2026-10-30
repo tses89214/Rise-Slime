@@ -1,6 +1,8 @@
 SET 'table.local-time-zone' = 'UTC';
 -- a quiet partition must not hold the watermark back
 SET 'table.exec.source.idle-timeout' = '10 s';
+-- dedup state (one key per event_id) expires after this; a duplicate arriving later slips through (ClickHouse's ReplacingMergeTree still collapses it in `events`)
+SET 'table.exec.state.ttl' = '1 h';
 
 -- Source: raw JSON lines from the collector's valid-event topic.
 CREATE TABLE events_raw (line STRING) WITH (
@@ -20,7 +22,7 @@ CREATE TABLE ch_events (
 
 -- Typed view of the same topic for windowing. event_time drives the watermark (10 s of out-of-order allowed).
 CREATE TABLE events_typed (
-  event_type STRING, player_id STRING, client STRING,
+  event_id STRING, event_type STRING, player_id STRING, client STRING,
   event_time TIMESTAMP_LTZ(3), ingested_at TIMESTAMP_LTZ(3),
   stations ARRAY<ROW<station STRING, slimes INT, `level` INT, produced INT, consumed INT, input_stock INT>>,
   is_new_player BOOLEAN, session_seconds DOUBLE, bread_sold BIGINT, coins_earned BIGINT,
@@ -34,6 +36,12 @@ CREATE TABLE events_typed (
   'properties.group.id' = 'flink-typed', 'scan.startup.mode' = 'earliest-offset',
   'format' = 'json', 'json.timestamp-format.standard' = 'ISO-8601', 'json.ignore-parse-errors' = 'true');
 
+-- First copy of each event_id wins (ordered by event_time, so the rowtime attribute survives). Sums and counts read this, not events_typed.
+CREATE VIEW events_dedup AS
+SELECT event_type, player_id, client, event_time, ingested_at, stations, is_new_player, session_seconds, bread_sold, coins_earned
+FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY event_id ORDER BY event_time ASC) AS rn FROM events_typed)
+WHERE rn = 1;
+
 CREATE TABLE ch_production_1m (
   window_start STRING, client STRING, station STRING, players BIGINT, slimes DOUBLE, produced BIGINT, consumed BIGINT, input_stock DOUBLE
 ) WITH (
@@ -41,7 +49,7 @@ CREATE TABLE ch_production_1m (
   'properties.bootstrap.servers' = 'kafka:29092,kafka2:29092', 'format' = 'json');
 
 CREATE TABLE ch_pipeline_1m (
-  window_start STRING, client STRING, event_type STRING, events BIGINT, avg_latency_ms DOUBLE, max_latency_ms BIGINT
+  window_start STRING, client STRING, event_type STRING, events BIGINT, duplicates BIGINT, avg_latency_ms DOUBLE, max_latency_ms BIGINT
 ) WITH (
   'connector' = 'kafka', 'topic' = 'ch.pipeline_1m',
   'properties.bootstrap.servers' = 'kafka:29092,kafka2:29092', 'format' = 'json');
@@ -69,12 +77,12 @@ FROM events_raw;
 INSERT INTO ch_production_1m
 SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), client, s.station,
   COUNT(DISTINCT player_id), AVG(CAST(s.slimes AS DOUBLE)), SUM(s.produced), SUM(s.consumed), AVG(CAST(s.input_stock AS DOUBLE))
-FROM events_typed CROSS JOIN UNNEST(stations) AS s
+FROM events_dedup CROSS JOIN UNNEST(stations) AS s
 WHERE event_type = 'production_tick'
 GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), client, s.station;
 INSERT INTO ch_pipeline_1m
 SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH:mm:ss'), client, event_type,
-  COUNT(*), AVG(CAST(latency_ms AS DOUBLE)), MAX(latency_ms)
+  COUNT(DISTINCT event_id), COUNT(*) - COUNT(DISTINCT event_id), AVG(CAST(latency_ms AS DOUBLE)), MAX(latency_ms)
 FROM events_typed
 GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), client, event_type;
 
@@ -90,6 +98,6 @@ SELECT DATE_FORMAT(TUMBLE_START(event_time, INTERVAL '1' MINUTE), 'yyyy-MM-dd HH
   COUNT(*) FILTER (WHERE event_type = 'achievement_unlocked'),
   COALESCE(SUM(bread_sold) FILTER (WHERE event_type = 'production_tick'), 0),
   COALESCE(SUM(coins_earned) FILTER (WHERE event_type = 'production_tick'), 0)
-FROM events_typed
+FROM events_dedup
 GROUP BY TUMBLE(event_time, INTERVAL '1' MINUTE), client;
 END;
