@@ -10,8 +10,8 @@
 | --- | --- | --- | --- | --- |
 | 遊戲（開發版） | 瀏覽器放置遊戲，Vite dev server | http://localhost:5173 | `npm run dev`（`VITE_TELEMETRY=true` 才會送事件） | `src/game/`、`index.html` |
 | Bots | Node 程式，模擬玩家並送事件 | 無（打 collector） | `npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events` | `src/bots/` |
-| **Collector** | Fastify。收事件、用 zod 驗證、寫 Kafka；**同時也提供儀表板** | **http://localhost:3000** | `KAFKA_BROKERS=localhost:9092 npm run collector` | `src/collector/` |
-| **儀表板** | 純 HTML + uPlot，每 5 秒打 `/api/dashboard` | **http://localhost:3000/dashboard**（`?client=bot` 只看 bot） | 跟 collector 一起 | `dashboard/index.html`、`src/collector/dashboard.ts` |
+| **Collector** | Python（FastAPI）。收事件、用 JSON Schema 驗證（由 zod 匯出）、寫 Kafka；**同時也提供儀表板** | **http://localhost:3000** | `KAFKA_BROKERS=localhost:9092 npm run collector` | `collector/main.py` |
+| **儀表板** | 純 HTML + uPlot，每 5 秒打 `/api/dashboard` | **http://localhost:3000/dashboard**（`?client=bot` 只看 bot） | 跟 collector 一起 | `dashboard/index.html`、`collector/main.py` |
 | Kafka（2 節點） | 訊息佇列。節點 1 對外 9092，節點 2 對外 9094 | localhost:9092 / 9094 | `docker compose up -d` | `docker-compose.yml` |
 | Kafka UI | 看 topic、訊息、consumer group | http://localhost:8080 | 同上 | 同上 |
 | Flink | 串流計算。UI 看 job 狀態 | http://localhost:8081 | 同上；job 用 `docker compose --profile submit run --rm flink-sql` 提交 | `pipeline/flink/job.sql` |
@@ -37,7 +37,7 @@ open http://localhost:3000/dashboard
 
 ## 3. 事件（11 種）
 
-所有事件共用欄位：`event_id`（UUID v7，去重用）、`event_type`、`schema_version`（1 或 2）、`player_id`、`session_id`、`client`（`browser`/`bot`）、`bot_persona`、`seq`、`event_time`（事件真的發生）、`sent_at`（客戶端送出）、`ingested_at`（collector 收到）。定義在 `src/events/schema.ts`。
+所有事件共用欄位：`event_id`（UUID v7，去重用）、`event_type`、`schema_version`（1 或 2）、`player_id`、`session_id`、`client`（`browser`/`bot`）、`bot_persona`、`seq`、`event_time`（事件真的發生）、`sent_at`（客戶端送出）、`ingested_at`（collector 收到）。定義在 `src/events/schema.ts`（zod）；改完要跑 `npm run schema` 重新匯出 `src/events/event.schema.json`，collector 讀這個檔驗證。
 
 | 事件 | 何時 | 版本 |
 | --- | --- | --- |

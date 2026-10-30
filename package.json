@@ -8,8 +8,10 @@
     "typecheck": "tsc --noEmit",
     "dev": "vite",
     "build": "vite build",
-    "collector": "tsx src/collector/server.ts",
-    "bots": "tsx src/bots/run.ts"
+    "collector": "uv run --with-requirements collector/requirements.txt uvicorn collector.main:app --host 0.0.0.0 --port ${PORT:-3000}",
+    "bots": "tsx src/bots/run.ts",
+    "schema": "tsx tools/export-schema.ts",
+    "test:collector": "uv run --with-requirements collector/requirements.txt python -m pytest collector -q"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
@@ -19,8 +21,6 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
-    "fastify": "^5.12.7",
-    "kafkajs": "^2.2.4",
     "uplot": "^1.6.32",
     "zod": "^4.6.7"
   }

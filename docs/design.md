@@ -223,7 +223,7 @@ Bot 和真人玩的是同一套規則，分析才有意義；現場展示時，�
 | 介面（HUD、卡片、按鈕） | HTML／CSS，疊在 Phaser 畫布上 | 排版快，可和儀表板共用樣式 |
 | 建置 | Vite | 用環境變數 `VITE_TELEMETRY` 切換是否送事件；以 `import.meta.env` 在建置時讀取，itch.io 版打包時會直接刪掉事件發送程式碼 |
 | 測試 | Vitest | 自動驗證數值規則，例如 4 : 6 : 5 的最佳比例 |
-| Collector | TypeScript（Fastify）＋ zod | 事件格式只定義一次，遊戲、bot、collector 共用 |
+| Collector | Python（FastAPI）＋ jsonschema | 事件格式仍只在 zod 定義一次；`npm run schema` 匯出 `src/events/event.schema.json`，collector 讀它驗證（見 decisions/2026-10-30-python-collector.md） |
 | 儀表板圖表 | uPlot | 輕量，適合快速更新的時間序列 |
 | 串流處理 | Flink SQL ＋ PyFlink | 聚合用 SQL，自訂狀態邏輯用 Python |
 

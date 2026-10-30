@@ -1,0 +1,1177 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "oneOf": [
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "session_start"
+    },
+    "offline_seconds": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "is_new_player": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "offline_seconds",
+    "is_new_player"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "session_end"
+    },
+    "session_seconds": {
+     "type": "number"
+    },
+    "reason": {
+     "type": "string",
+     "enum": [
+      "closed",
+      "idle_timeout",
+      "bot_stop"
+     ]
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "session_seconds",
+    "reason"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "offline_progress_applied"
+    },
+    "offline_seconds": {
+     "type": "number"
+    },
+    "credited_seconds": {
+     "type": "number"
+    },
+    "produced": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string"
+     },
+     "additionalProperties": {
+      "type": "number"
+     }
+    },
+    "bread_sold": {
+     "type": "number"
+    },
+    "coins_earned": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "offline_seconds",
+    "credited_seconds",
+    "produced",
+    "bread_sold",
+    "coins_earned"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "slime_purchased"
+    },
+    "slime_id": {
+     "type": "string"
+    },
+    "cost": {
+     "type": "number"
+    },
+    "total_purchased": {
+     "type": "number"
+    },
+    "coins_after": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "slime_id",
+    "cost",
+    "total_purchased",
+    "coins_after"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "slime_assigned"
+    },
+    "slime_id": {
+     "type": "string"
+    },
+    "from_station": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "farm",
+        "mill",
+        "bakery"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "to_station": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "farm",
+        "mill",
+        "bakery"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "tier": {
+     "type": "integer",
+     "exclusiveMinimum": 0,
+     "maximum": 9007199254740991
+    },
+    "trait": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "leaf",
+        "stone",
+        "flame",
+        "lucky"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "slime_id",
+    "from_station",
+    "to_station"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "type": "number",
+     "const": 2
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "slime_merged"
+    },
+    "slime_id": {
+     "type": "string"
+    },
+    "material_ids": {
+     "minItems": 3,
+     "maxItems": 3,
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "new_tier": {
+     "type": "integer",
+     "minimum": 2,
+     "maximum": 9007199254740991
+    },
+    "trait": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "leaf",
+        "stone",
+        "flame",
+        "lucky"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "mutated": {
+     "type": "boolean"
+    },
+    "mutation_chance": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "slime_id",
+    "material_ids",
+    "new_tier",
+    "trait",
+    "mutated",
+    "mutation_chance"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "type": "number",
+     "const": 2
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "station_expanded"
+    },
+    "station": {
+     "type": "string",
+     "enum": [
+      "farm",
+      "mill",
+      "bakery"
+     ]
+    },
+    "new_slots": {
+     "type": "integer",
+     "minimum": -9007199254740991,
+     "maximum": 9007199254740991
+    },
+    "cost": {
+     "type": "number"
+    },
+    "coins_after": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "station",
+    "new_slots",
+    "cost",
+    "coins_after"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "type": "number",
+     "const": 2
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "feature_unlocked"
+    },
+    "feature_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "feature_id"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "station_upgraded"
+    },
+    "station": {
+     "type": "string",
+     "enum": [
+      "farm",
+      "mill",
+      "bakery"
+     ]
+    },
+    "new_level": {
+     "type": "number"
+    },
+    "cost": {
+     "type": "number"
+    },
+    "speed_multiplier": {
+     "type": "number"
+    },
+    "milestone_reached": {
+     "type": "boolean"
+    },
+    "coins_after": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "station",
+    "new_level",
+    "cost",
+    "speed_multiplier",
+    "milestone_reached",
+    "coins_after"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "achievement_unlocked"
+    },
+    "achievement_id": {
+     "type": "string"
+    },
+    "total_unlocked": {
+     "type": "integer",
+     "exclusiveMinimum": 0,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "achievement_id",
+    "total_unlocked"
+   ]
+  },
+  {
+   "type": "object",
+   "properties": {
+    "event_id": {
+     "type": "string",
+     "format": "uuid",
+     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+    },
+    "schema_version": {
+     "anyOf": [
+      {
+       "type": "number",
+       "const": 1
+      },
+      {
+       "type": "number",
+       "const": 2
+      }
+     ]
+    },
+    "game_version": {
+     "type": "string"
+    },
+    "player_id": {
+     "type": "string"
+    },
+    "session_id": {
+     "type": "string"
+    },
+    "client": {
+     "type": "string",
+     "enum": [
+      "browser",
+      "bot"
+     ]
+    },
+    "bot_persona": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "event_time": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "sent_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "ingested_at": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "event_type": {
+     "type": "string",
+     "const": "production_tick"
+    },
+    "window_start": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "window_end": {
+     "type": "string",
+     "format": "date-time",
+     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "stations": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "station": {
+        "type": "string",
+        "enum": [
+         "farm",
+         "mill",
+         "bakery"
+        ]
+       },
+       "slimes": {
+        "type": "number"
+       },
+       "level": {
+        "type": "number"
+       },
+       "produced": {
+        "type": "number"
+       },
+       "consumed": {
+        "type": "number"
+       },
+       "input_stock": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "station",
+       "slimes",
+       "level",
+       "produced",
+       "consumed",
+       "input_stock"
+      ]
+     }
+    },
+    "bread_sold": {
+     "type": "number"
+    },
+    "coins_earned": {
+     "type": "number"
+    },
+    "coins_balance": {
+     "type": "number"
+    },
+    "slimes_owned": {
+     "type": "number"
+    },
+    "achievements_unlocked": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "event_id",
+    "schema_version",
+    "game_version",
+    "player_id",
+    "session_id",
+    "client",
+    "bot_persona",
+    "seq",
+    "event_time",
+    "sent_at",
+    "event_type",
+    "window_start",
+    "window_end",
+    "stations",
+    "bread_sold",
+    "coins_earned",
+    "coins_balance",
+    "slimes_owned",
+    "achievements_unlocked"
+   ]
+  }
+ ]
+}

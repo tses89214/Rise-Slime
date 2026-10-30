@@ -14,7 +14,7 @@ Rendered copies (regenerate with `npx @mermaid-js/mermaid-cli` if you edit the d
 | ClickHouse table / Kafka-engine table | rectangle | yellow |
 | ClickHouse view | rectangle, dashed border | light yellow |
 | HTML / browser (game page, dashboard page) | rounded pill | blue |
-| Node service (collector, bots) | rectangle with slanted edges | grey |
+| Node service (bots) / Python service (collector) | rectangle with slanted edges | grey |
 
 ## 1. Services (who talks to whom)
 
@@ -28,7 +28,7 @@ flowchart LR
 
   game(["Browser game<br/>HTML + TS<br/>(VITE_TELEMETRY=true)"]):::html
   bots[/"Bots (Node)<br/>duplicates, malformed,<br/>disconnect + late resend"/]:::node
-  collector[/"Collector (Node)<br/>Fastify + zod<br/>POST /events"/]:::node
+  collector[/"Collector (Python)<br/>FastAPI + JSON Schema<br/>POST /events"/]:::node
 
   t_events[("Kafka topic<br/>events")]:::kafka
   t_dlq[("Kafka topic<br/>events.dlq")]:::kafka
@@ -39,7 +39,7 @@ flowchart LR
   chk["ClickHouse<br/>Kafka-engine tables + materialized views"]:::ch
   store["ClickHouse<br/>MergeTree tables"]:::ch
 
-  api[/"Collector (Node)<br/>GET /api/dashboard<br/>fixed read-only queries"/]:::node
+  api[/"Collector (Python)<br/>GET /api/dashboard<br/>fixed read-only queries"/]:::node
   dash(["Ops dashboard page<br/>HTML + uPlot, polls every 5 s"]):::html
 
   game -->|JSON| collector
