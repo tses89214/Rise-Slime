@@ -33,11 +33,10 @@
   th, td { text-align:right; padding:4px 8px; border-bottom:2px solid #EEF0FF; white-space:nowrap; }
   th:first-child, td:first-child { text-align:left; }
   th { color:var(--ink2); font-weight:normal; }
-  details.card > summary { cursor:pointer; list-style:none; }
-  details.card > summary::before { content:'▸ '; } details.card[open] > summary::before { content:'▾ '; }
-  #t-dead { table-layout:fixed; margin-top:8px; }
-  #t-dead th, #t-dead td { white-space:normal; word-break:break-all; text-align:left; vertical-align:top; font-size:22px; }
-  #t-dead th:nth-child(1) { width:110px; } #t-dead th:nth-child(2) { width:36%; }
+  #t-dead { table-layout:fixed; }
+  #t-dead th, #t-dead td { white-space:normal; overflow-wrap:anywhere; text-align:left; vertical-align:top; font-size:22px; }
+  #t-dead th:nth-child(1) { width:110px; } #t-dead th:nth-child(2) { width:28%; }
+  #t-dead td:nth-child(3) { font-size:18px; line-height:1.25; }
   .on { color:var(--farm); } .off { color:var(--ink2); }
   .u-legend { font:22px monogram, monospace; } .u-legend .u-marker { border-radius:0; }
   @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
@@ -72,7 +71,7 @@
 </section>
 
 <section class="grid">
-  <details class="card" id="dead-card" style="grid-column:1/-1"><summary><h2 style="display:inline">Latest dead letters <span id="dead-n"></span></h2></summary><table id="t-dead"></table><div class="note">rejected by the collector's schema check, newest first</div></details>
+  <div class="card" style="grid-column:1/-1"><h2>Latest dead letters <span id="dead-n"></span></h2><table id="t-dead"></table><div class="note">rejected by the collector's schema check, newest first; raw is the full original payload; hover an error for the full validation message</div></div>
 </section>
 
 <script src="/dashboard/uplot.js"></script>
@@ -144,7 +143,7 @@ async function refresh() {
       ['', (r) => `<span class="${r.online ? 'on' : 'off'}" title="${r.online ? 'online' : 'away'}">${r.online ? '●' : '○'}</span>`]], d.richest);
     table('t-eff', [['player', (r) => r.player_id], ['persona', (r) => r.persona ?? 'human'], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
     $('dead-n').textContent = `· ${n(k.dead)} total, ${(100 * k.dead / total).toFixed(2)}%`;
-    table('t-dead', [['time', (r) => r.at], ['error', (r) => esc(r.error.slice(0, 80))], ['raw', (r) => esc(r.snippet)]], d.dead);
+    table('t-dead', [['time', (r) => r.at], ['error', (r) => `<span title="${esc(r.error)}">${esc(r.error.split(' Expected')[0])}</span>`], ['raw', (r) => esc(r.snippet)]], d.dead);
 
     $('dot').className = '';
     $('stamp').textContent = 'live · ' + new Date().toLocaleTimeString('en-GB');

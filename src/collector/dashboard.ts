@@ -24,7 +24,7 @@ export function dashboardSql(minutes: number, client: ClientFilter) {
     late: `SELECT toUnixTimestamp(window_start) t, sum(late_events) late, max(max_delay_s) max_delay_s FROM slime.late_1m FINAL WHERE ${since} GROUP BY t ORDER BY t`,
     richest: `SELECT player_id, bot_persona persona, round(coins_now) coins, slimes_owned slimes, achievements_unlocked achievements, station_levels levels, online FROM slime.leaderboard WHERE ${c} LIMIT 10`,
     efficiency: `SELECT player_id, bot_persona persona, round(earned) coins_earned, round(coins_per_min, 1) per_min, round(coins_per_min_per_slime, 2) per_slime FROM slime.efficiency WHERE coins_per_min IS NOT NULL AND ${c} LIMIT 10`,
-    dead: `SELECT formatDateTime(received_at, '%H:%i:%S') at, error, substring(raw, 1, 120) snippet FROM slime.dead_letters WHERE ${dead} ORDER BY received_at DESC LIMIT 8`,
+    dead: `SELECT formatDateTime(received_at, '%H:%i:%S') at, error, substring(raw, 1, 2000) snippet FROM slime.dead_letters WHERE ${dead} ORDER BY received_at DESC LIMIT 8`,
     kpi: `SELECT (SELECT countIf(online) FROM slime.leaderboard WHERE ${c}) online, (SELECT count() FROM slime.events WHERE ${c}) events,
       (SELECT count() FROM slime.dead_letters WHERE ${dead}) dead,
       uniqIf(player_id, event_time > now() - INTERVAL 1 DAY) dau, uniqIf(player_id, event_time > now() - INTERVAL 7 DAY) wau, uniqIf(player_id, event_time > now() - INTERVAL 30 DAY) mau
