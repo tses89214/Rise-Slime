@@ -34,3 +34,6 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - Events older than the 15 min allowed lateness, or a duplicate after the 1 h dedup state expires, are not repaired by Flink; the raw `events` table still has them.
 - Replaying old Kafka data after new data (a resubmit) reads partitions out of global order, so windows older than the lateness are dropped; observed: `late_1m` is only meaningful for live runs.
 - `table.exec.emit.*` late-fire settings are a legacy-but-working Flink 1.20 feature; if a Flink upgrade removes them the fallback is to widen the watermark delay.
+- Back-to-back bot runs with `--speed` lose the first minutes of the later run: event time runs ahead of the wall clock, so the next run starts >15 min behind the watermark and the windows drop it. Measured 52 dropped events; a ClickHouse query applying Flink's rule predicted exactly 9/26/17 per window. Not a bug; documented in `docs/system.md`.
+- E2E check (20 bots x 1200 s, live): merges 141 = 141, expansions 49 = 49, schema v1 2727 + v2 14885 events coexist, dead letters 87, dashboard API ok.
+
