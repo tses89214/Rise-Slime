@@ -50,6 +50,7 @@
   <div class="card kpi"><div class="v" id="k-dau">–</div><div class="l">DAU · WAU · MAU</div></div>
   <div class="card kpi"><div class="v" id="k-events">–</div><div class="l">events stored</div></div>
   <div class="card kpi"><div class="v" id="k-dead">–</div><div class="l">dead-letter rate</div></div>
+  <div class="card kpi"><div class="v" id="k-dup">–</div><div class="l">duplicates dropped (1 h)</div></div>
 </section>
 
 <section class="grid">
@@ -126,6 +127,7 @@ async function refresh() {
     const total = Number(k.events) + Number(k.dead);
     $('k-dead').textContent = total ? (100 * k.dead / total).toFixed(2) + '%' : '–';
 
+    $('k-dup').textContent = n(d.pipeline.reduce((a, r) => a + Number(r.duplicates), 0));
     draw('c-prod', d.production, ['produced'], 'station', COLORS);
     draw('c-queue', d.production, ['queue'], 'station', COLORS);
     draw('c-ops', d.ops, ['active', 'purchases', 'upgrades'], null, [COLORS.a, COLORS.b, COLORS.c]);

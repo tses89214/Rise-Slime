@@ -1,5 +1,5 @@
 import { ACHIEVEMENTS, checkAchievements } from '../core/achievements';
-import { type Slime, QUEUE, applyOffline, assignOne, buySlime, newState, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
+import { type Slime, QUEUE, applyOffline, assignOne, buySlime, canMerge, checkFeatures, expand, expandCost, merge, migrate, newState, rng, slimePower, slimeCost, STATIONS, speedMultiplier, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { initAudio, sfx } from './audio';
 import { sale, startCustomers } from './customers';
 import { emit } from './telemetry';
@@ -45,8 +45,7 @@ try {
   if (raw) {
     const save: Save = JSON.parse(raw);
     s = save.state;
-    s.achievements ??= []; // saves from before achievements existed
-    for (const id of STATIONS) s.stations[id].made ??= 0;
+    migrate(s); // saves from before achievements / M3 lack some fields
     isNew = false;
     offlineSeconds = (Date.now() - save.savedAt) / 1000;
   }
@@ -65,6 +64,7 @@ if (demo) {
 const openDlg = import.meta.env.DEV ? new URLSearchParams(location.search).get('open') : null; // dev only: ?open=helpdlg for screenshots
 if (openDlg) ($(openDlg) as HTMLDialogElement).showModal();
 
+const rand = rng(Date.now()); // the core takes its randomness as an argument; the game seeds it from the clock
 const t0 = Date.now();
 emit?.('session_start', t0, { offline_seconds: offlineSeconds, is_new_player: isNew });
 if (offlineSeconds && offlineSeconds > 5) {
@@ -110,6 +110,7 @@ $('stations').innerHTML = STATIONS.map((id) => `
       <button data-minus="${id}" aria-label="Move one slime back to the lounge">−</button>
       <button data-plus="${id}" aria-label="Assign one slime from the lounge">+</button>
       <button class="primary" data-up="${id}"></button>
+      <button data-expand="${id}" hidden></button>
     </div>
   </div>`).join('');
 
@@ -120,15 +121,26 @@ $('buy').onclick = () => {
   emit?.('slime_purchased', Date.now(), { slime_id: slime.id, cost, total_purchased: s.totalPurchased, coins_after: s.coins });
   render();
 };
-document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]').forEach((b) => {
+$('merge').onclick = () => {
+  const m = merge(s, rand);
+  if (!m) return;
+  sfx('confirmation_002.ogg');
+  toast(m.slime.trait ? `Merged into a tier ${m.slime.tier} ${m.slime.trait} slime!` : `Merged into a tier ${m.slime.tier} slime`);
+  emit?.('slime_merged', Date.now(), { slime_id: m.slime.id, material_ids: m.materials, new_tier: m.slime.tier, trait: m.slime.trait, mutated: m.mutated, mutation_chance: m.chance });
+  render();
+};
+document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up],[data-expand]').forEach((b) => {
   b.onclick = () => {
     const d = b.dataset;
-    if (d.up) {
+    if (d.expand) {
+      const id = d.expand as StationId, cost = expandCost(s, id), e = expand(s, id);
+      if (e) { sfx('confirmation_002.ogg'); emit?.('station_expanded', Date.now(), { station: id, new_slots: e.slots, cost, coins_after: s.coins }); }
+    } else if (d.up) {
       const id = d.up as StationId, cost = upgradeCost(s, id), u = upgrade(s, id);
       if (u) { sfx('confirmation_002.ogg'); emit?.('station_upgraded', Date.now(), { station: id, new_level: u.level, cost, speed_multiplier: u.speedMultiplier, milestone_reached: u.milestone, coins_after: s.coins }); }
     } else {
       const r = d.plus ? assignOne(s, d.plus as StationId) : assignOne(s, null, d.minus as StationId);
-      if (r) { sfx('mud_01.ogg'); emit?.('slime_assigned', Date.now(), { slime_id: r.slime.id, from_station: r.from, to_station: r.to }); }
+      if (r) { sfx('mud_01.ogg'); emit?.('slime_assigned', Date.now(), { slime_id: r.slime.id, from_station: r.from, to_station: r.to, tier: r.slime.tier, trait: r.slime.trait }); }
     }
     render();
   };
@@ -138,11 +150,11 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 // Elements are looked up once; text/classes are only written when the value changed (writes cost layout even when identical).
 const el = (id: string) => document.getElementById(id)!;
 const ui = {
-  coins: el('coins'), income: el('income'), buy: el('buy') as HTMLButtonElement, buyCost: el('buy-cost'), windmill: el('windmill'), oven: el('oven'), shopFx: el('shop-fx'),
+  coins: el('coins'), income: el('income'), buy: el('buy') as HTMLButtonElement, buyCost: el('buy-cost'), merge: el('merge') as HTMLButtonElement, windmill: el('windmill'), oven: el('oven'), shopFx: el('shop-fx'),
   st: Object.fromEntries(STATIONS.map((id) => [id, {
     n: el(`${id}-n`), lv: el(`${id}-lv`), rate: el(`${id}-rate`), ql: el(`${id}-ql`), qn: el(`${id}-qn`), bar: el(`${id}-bar`), card: el(`card-${id}`),
-    up: document.querySelector<HTMLButtonElement>(`[data-up="${id}"]`)!, plus: document.querySelector<HTMLButtonElement>(`[data-plus="${id}"]`)!, minus: document.querySelector<HTMLButtonElement>(`[data-minus="${id}"]`)!,
-  }])) as Record<StationId, { n: HTMLElement; lv: HTMLElement; rate: HTMLElement; ql: HTMLElement; qn: HTMLElement; bar: HTMLElement; card: HTMLElement; up: HTMLButtonElement; plus: HTMLButtonElement; minus: HTMLButtonElement }>,
+    up: document.querySelector<HTMLButtonElement>(`[data-up="${id}"]`)!, plus: document.querySelector<HTMLButtonElement>(`[data-plus="${id}"]`)!, minus: document.querySelector<HTMLButtonElement>(`[data-minus="${id}"]`)!, expand: document.querySelector<HTMLButtonElement>(`[data-expand="${id}"]`)!,
+  }])) as Record<StationId, { expand: HTMLButtonElement; n: HTMLElement; lv: HTMLElement; rate: HTMLElement; ql: HTMLElement; qn: HTMLElement; bar: HTMLElement; card: HTMLElement; up: HTMLButtonElement; plus: HTMLButtonElement; minus: HTMLButtonElement }>,
 };
 const shown = new Map<object, string>();
 const setText = (e: HTMLElement, v: string) => { if (shown.get(e) !== v) { shown.set(e, v); e.textContent = v; } };
@@ -178,6 +190,8 @@ function render() {
   const cost = slimeCost(s);
   ui.buy.disabled = s.coins < cost;
   setText(ui.buyCost, `${fmt(cost)} coins`);
+  ui.merge.hidden = !s.features.includes('merge');
+  ui.merge.disabled = !canMerge(s);
   const by: Record<string, Slime[]> = { lounge: [], farm: [], mill: [], bakery: [] }; // group once
   for (const sl of s.slimes) by[sl.station ?? 'lounge'].push(sl);
   setHtml('lounge-slimes', keyOf(by.lounge, 'idle'), crowd(by.lounge, 'idle'));
@@ -187,9 +201,9 @@ function render() {
     const starved = id !== 'farm' && n > 0 && st.stock < QUEUE.starved;
     const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= QUEUE.jam ? 'jam' : st.stock >= QUEUE.backed ? 'warn' : st.stock >= QUEUE.busy ? 'busy' : n === 0 && st.stock >= QUEUE.starved ? 'warn' : 'ok';
     const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
-    setText(u.n, String(n));
+    setText(u.n, `${n}/${st.slots}`);
     setText(u.lv, String(st.level));
-    setText(u.rate, `${((n * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]}/s`);
+    setText(u.rate, `${((list.reduce((a, x) => a + slimePower(x, id), 0) * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]}/s`);
     setText(u.ql, id === 'farm' ? 'Queue' : `Queue: ${stock} ${IN[id]}`);
     setText(u.qn, note);
     const w = id === 'farm' ? '0%' : `${barPct(st.stock).toFixed(0)}%`;
@@ -198,7 +212,10 @@ function render() {
     const upCost = upgradeCost(s, id);
     setText(u.up, `Upgrade · ${fmt(upCost)}`);
     u.up.disabled = s.coins < upCost;
-    u.plus.disabled = by.lounge.length === 0;
+    u.plus.disabled = by.lounge.length === 0 || n >= st.slots;
+    u.expand.hidden = !s.features.includes('expansion');
+    setText(u.expand, `Expand · ${fmt(expandCost(s, id))}`);
+    u.expand.disabled = s.coins < expandCost(s, id);
     u.minus.disabled = n === 0;
     const anim = starved ? 'sleep' : id === 'mill' ? 'spin' : 'hop';
     setHtml(`actors-${id}`, keyOf(list, anim), crowd(list, anim, starved));
@@ -233,6 +250,10 @@ setInterval(() => {
   acc += Math.min((now - last) / 1000, 1); // tab throttling: longer gaps are covered by offline logic on reload
   last = now;
   while (acc >= 0.1) { step(s, 0.1); acc -= 0.1; tickAcc += 0.1; }
+  for (const f of checkFeatures(s)) {
+    toast(f === 'merge' ? 'New: merge 3 slimes of a tier into a stronger one!' : 'New: stations can be expanded!');
+    emit?.('feature_unlocked', Date.now(), { feature_id: f });
+  }
   for (const a of checkAchievements(s)) {
     sfx('confirmation_002.ogg');
     toast(`Achievement unlocked: ${a.name}`);

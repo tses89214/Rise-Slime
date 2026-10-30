@@ -7,6 +7,13 @@ const T = '2026-11-02T08:15:05.000Z';
 const base = { event_id: uuid7(Date.UTC(2026, 10, 2)), schema_version: 1, game_version: '0.1.0', player_id: 'p', session_id: 's', client: 'browser', bot_persona: null, seq: 0, event_time: T, sent_at: T };
 const station = { station: 'farm', slimes: 1, level: 0, produced: 1, consumed: 0, input_stock: 0 };
 
+// v2 (M3) events: schema_version must be 2, an old client can never have produced them
+const V2: Record<string, object> = {
+  slime_merged: { slime_id: 'slime-m1', material_ids: ['a', 'b', 'c'], new_tier: 2, trait: null, mutated: false, mutation_chance: 0.05 },
+  station_expanded: { station: 'mill', new_slots: 15, cost: 100, coins_after: 3 },
+  feature_unlocked: { feature_id: 'merge' },
+};
+
 const VALID: Record<string, object> = {
   session_start: { offline_seconds: null, is_new_player: true },
   session_end: { session_seconds: 60, reason: 'closed' },
@@ -29,6 +36,23 @@ describe('uuid7', () => {
   });
 });
 
+describe('schema v2', () => {
+  test.each(Object.entries(V2))('accepts %s at version 2 and rejects it at version 1', (type, body) => {
+    expect(GameEvent.safeParse({ ...base, schema_version: 2, event_type: type, ...body }).success).toBe(true);
+    expect(GameEvent.safeParse({ ...base, schema_version: 1, event_type: type, ...body }).success).toBe(false);
+  });
+  test('v1 events stay valid, and v2 only adds optional fields to old ones (old data is readable)', () => {
+    const assigned = { ...base, event_type: 'slime_assigned', slime_id: 's', from_station: null, to_station: 'farm' };
+    expect(GameEvent.safeParse(assigned).success).toBe(true);
+    expect(GameEvent.safeParse({ ...assigned, schema_version: 2, tier: 2, trait: 'leaf' }).success).toBe(true);
+    expect(GameEvent.safeParse({ ...assigned, schema_version: 2, trait: 'sparkly' }).success).toBe(false);
+  });
+  test('a merge always has exactly three materials', () => {
+    const bad = { ...base, schema_version: 2, event_type: 'slime_merged', ...V2.slime_merged, material_ids: ['a', 'b'] };
+    expect(GameEvent.safeParse(bad).success).toBe(false);
+  });
+});
+
 describe('schema', () => {
   test.each(Object.entries(VALID))('accepts a valid %s', (type, body) => {
     expect(GameEvent.safeParse({ ...base, event_type: type, ...body }).success).toBe(true);
@@ -45,7 +69,7 @@ describe('schema', () => {
     expect(GameEvent.safeParse({ ...ok, to_station: 'nowhere' }).success).toBe(false);
     expect(GameEvent.safeParse({ ...ok, client: 'robot' }).success).toBe(false);
     expect(GameEvent.safeParse({ ...ok, event_time: 'yesterday' }).success).toBe(false);
-    expect(GameEvent.safeParse({ ...ok, schema_version: 2 }).success).toBe(false);
+    expect(GameEvent.safeParse({ ...ok, schema_version: 3 }).success).toBe(false);
     expect(GameEvent.safeParse({ ...ok, event_id: 'abc' }).success).toBe(false);
     expect(GameEvent.safeParse({ ...ok, seq: -1 }).success).toBe(false);
   });
@@ -71,7 +95,7 @@ describe('emitter', () => {
     expect(out.map((e) => e.seq)).toEqual([0, 1, 2]);
     expect(out.map((e) => e.event_time)).toEqual([1_000, 2_000, 3_000].map((t) => new Date(t).toISOString()));
     for (const e of out) {
-      expect(e).toMatchObject({ player_id: 'p', session_id: 's', client: 'bot', bot_persona: 'x', schema_version: 1 });
+      expect(e).toMatchObject({ player_id: 'p', session_id: 's', client: 'bot', bot_persona: 'x', schema_version: 2 });
       expect(GameEvent.safeParse(e).success).toBe(true);
     }
     expect(new Set(out.map((e) => e.event_id)).size).toBe(3);

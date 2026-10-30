@@ -1,5 +1,5 @@
 import { checkAchievements } from '../core/achievements';
-import { assignOne, buySlime, count, newState, rng, slimeCost, STATIONS, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
+import { assignOne, buySlime, checkFeatures, count, expand, expandCost, merge, newState, rng, slimeCost, STATIONS, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { makeEmitter } from '../events/emitter';
 import type { GameEvent } from '../events/schema';
 
@@ -20,6 +20,7 @@ export async function runBot(o: BotOpts) {
   for (let t = 1; t <= seconds; t++) {
     for (let i = 0; i < 10; i++) step(s, 0.1);
     act(t);
+    for (const f of checkFeatures(s)) emit('feature_unlocked', at(t), { feature_id: f });
     for (const a of checkAchievements(s)) emit('achievement_unlocked', at(t), { achievement_id: a.id, total_unlocked: s.achievements.length });
     if (t % 5 === 0) {
       emit('production_tick', at(t), { window_start: new Date(at(windowStart)).toISOString(), window_end: new Date(at(t)).toISOString(), ...takeWindow(s) });
@@ -38,13 +39,27 @@ export async function runBot(o: BotOpts) {
       const slime = buySlime(s);
       if (slime) emit('slime_purchased', now, { slime_id: slime.id, cost, total_purchased: s.totalPurchased, coins_after: s.coins });
     }
-    // assign everything waiting in the lounge
-    while (count(s, null) > 0) {
-      const to = o.persona === 'optimizer'
-        ? STATIONS.reduce((a, b) => (count(s, a) / IDEAL[a] <= count(s, b) / IDEAL[b] ? a : b))
-        : STATIONS[Math.floor(rand() * 3)];
-      const r = assignOne(s, to)!;
-      emit('slime_assigned', now, { slime_id: r.slime.id, from_station: r.from, to_station: r.to });
+    // a full station is what makes merging worth it: merge only when slimes are waiting and no station has room
+    const room = () => STATIONS.filter((i) => count(s, i) < s.stations[i].slots);
+    const assignLounge = () => {
+      for (let open = room(); count(s, null) > 0 && open.length; open = room()) {
+        const to = o.persona === 'optimizer'
+          ? open.reduce((a, b) => (count(s, a) / IDEAL[a] <= count(s, b) / IDEAL[b] ? a : b))
+          : open[Math.floor(rand() * open.length)];
+        const r = assignOne(s, to)!;
+        emit('slime_assigned', now, { slime_id: r.slime.id, from_station: r.from, to_station: r.to, tier: r.slime.tier, trait: r.slime.trait });
+      }
+    };
+    assignLounge();
+    if (count(s, null) > 0 && !room().length) {
+      // expand the first full station if the optimizer finds it cheaper than a slime, else merge
+      const cost = expandCost(s, STATIONS[0]);
+      const e = o.persona === 'optimizer' && s.features.includes('expansion') && cost <= slimeCost(s) * 1.5 ? expand(s, STATIONS[0]) : null;
+      if (e) emit('station_expanded', now, { station: e.station, new_slots: e.slots, cost, coins_after: s.coins });
+      for (let m = e ? null : merge(s, rand); m; m = null) {
+        emit('slime_merged', now, { slime_id: m.slime.id, material_ids: m.materials, new_tier: m.slime.tier, trait: m.slime.trait, mutated: m.mutated, mutation_chance: m.chance });
+      }
+      assignLounge();
     }
     if (o.persona === 'optimizer') {
       const target = STATIONS.reduce((a, b) => (upgradeCost(s, a) <= upgradeCost(s, b) ? a : b));

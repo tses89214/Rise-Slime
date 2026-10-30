@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
-  applyOffline, assignOne, buySlime, count, newState, OFFLINE_CAP_SECONDS, rng, slimeCost,
+  applyOffline, assignOne, migrate, buySlime, checkFeatures, count, expand, expandCost, merge, newState, slimePower, START_SLOTS, OFFLINE_CAP_SECONDS, rng, slimeCost,
   speedMultiplier, State, STATIONS, step, takeWindow, upgrade, upgradeCost,
 } from './sim';
 
@@ -333,5 +333,122 @@ describe('rng', () => {
     const mean = xs.reduce((a, b) => a + b) / xs.length;
     expect(mean).toBeGreaterThan(0.48);
     expect(mean).toBeLessThan(0.52);
+  });
+});
+
+describe('M3: merging', () => {
+  // 3 slimes of tier 1 in the lounge, merge unlocked
+  const lounge = (n: number, tier = 1, trait: 'leaf' | 'lucky' | null = null) => {
+    const s = newState({ farm: 0, mill: 0, bakery: 0 });
+    s.features.push('merge');
+    for (let i = 0; i < n; i++) s.slimes.push({ id: `t${tier}-${i}`, station: null, tier, trait });
+    return s;
+  };
+  const never = () => 0.99; // rolls above any mutation chance
+
+  test('locked until the merge feature is unlocked (the Slimes tab does not exist yet)', () => {
+    const s = lounge(3);
+    s.features = [];
+    expect(merge(s, never)).toBeNull();
+    s.totalPurchased = 6;
+    expect(checkFeatures(s)).toContain('merge');
+    expect(checkFeatures(s)).toEqual([]); // idempotent: the unlock event is sent once
+  });
+  test('three of a tier become one of the next tier; two or fewer do nothing', () => {
+    expect(merge(lounge(2), never)).toBeNull();
+    const s = lounge(4);
+    const r = merge(s, never)!;
+    expect(r.slime.tier).toBe(2);
+    expect(r.materials).toHaveLength(3);
+    expect(s.slimes).toHaveLength(2); // 4 - 3 + 1
+    expect(s.totalMerged).toBe(1);
+  });
+  test('merges the lowest tier first and takes lounge slimes before working ones', () => {
+    const s = lounge(3, 2);
+    s.slimes.push({ id: 'w1', station: 'farm', tier: 1, trait: null }, { id: 'w2', station: 'farm', tier: 1, trait: null }, { id: 'l1', station: null, tier: 1, trait: null }, { id: 'w3', station: 'mill', tier: 1, trait: null });
+    expect(merge(s, never)!.materials).toEqual(['l1', 'w1', 'w2']);
+  });
+  test('output: 3 -> 1 loses about 17% but frees two slots (why merging is a decision)', () => {
+    expect(slimePower({ id: 'x', station: 'farm', tier: 2, trait: null }, 'farm') / 3).toBeCloseTo(2.5 / 3, 5);
+  });
+  test('mutation chance is 5%, doubled by a lucky ingredient, and is logged', () => {
+    expect(merge(lounge(3), never)!.chance).toBe(0.05);
+    expect(merge(lounge(3, 1, 'lucky'), never)!.chance).toBe(0.1);
+  });
+  test('mutation is the seeded roll: a rare roll adds a trait, a high roll does not', () => {
+    const hit = merge(lounge(3), () => 0.01)!;
+    expect(hit.mutated).toBe(true);
+    expect(hit.slime.trait).not.toBeNull();
+    expect(merge(lounge(3), never)!.slime.trait).toBeNull();
+    // same seed, same mutation outcomes
+    const run = (seed: number) => { const r = rng(seed); return Array.from({ length: 50 }, () => merge(lounge(3), r)!.mutated); };
+    expect(run(7)).toEqual(run(7));
+  });
+  test('about 5% of merges mutate over many seeded rolls', () => {
+    const r = rng(3);
+    const hits = Array.from({ length: 4000 }, () => merge(lounge(3), r)!.mutated).filter(Boolean).length;
+    expect(hits / 4000).toBeGreaterThan(0.04);
+    expect(hits / 4000).toBeLessThan(0.06);
+  });
+  test('a trait is inherited from an ingredient that has one, even with no mutation roll', () => {
+    const s = lounge(2);
+    s.slimes.push({ id: 'g', station: null, tier: 1, trait: 'leaf' });
+    expect(merge(s, never)!.slime.trait).toBe('leaf');
+  });
+  test('price counts lifetime purchases, so merging cannot be used to buy cheaper (anti-exploit)', () => {
+    const s = newState();
+    s.coins = 1e6;
+    for (let i = 0; i < 6; i++) buySlime(s);
+    const before = slimeCost(s);
+    s.features.push('merge');
+    for (const x of s.slimes) x.station = null;
+    merge(s, never);
+    expect(slimeCost(s)).toBe(before);
+  });
+});
+
+describe('M3: traits and slots', () => {
+  test('a trait helps at its station and hurts elsewhere (placement matters)', () => {
+    const leaf = { id: 'a', station: null, tier: 1, trait: 'leaf' as const };
+    expect(slimePower(leaf, 'farm')).toBe(1.5);
+    expect(slimePower(leaf, 'bakery')).toBe(0.8);
+    expect(slimePower(leaf, 'mill')).toBe(1);
+  });
+  test('a leaf slime makes the farm faster than a plain one', () => {
+    const plain = newState({ farm: 1, mill: 0, bakery: 0 }), leaf = newState({ farm: 1, mill: 0, bakery: 0 });
+    leaf.slimes[0].trait = 'leaf';
+    run(plain, 10); run(leaf, 10);
+    expect(leaf.stations.farm.produced).toBeGreaterThan(plain.stations.farm.produced);
+  });
+  test('a full station refuses another slime until it is expanded', () => {
+    const s = newState({ farm: START_SLOTS, mill: 0, bakery: 0 });
+    s.slimes.push({ id: 'extra', station: null, tier: 1, trait: null });
+    expect(assignOne(s, 'farm')).toBeNull();
+    s.coins = 1000;
+    const e = expand(s, 'farm')!;
+    expect(e.slots).toBe(START_SLOTS + 5);
+    expect(assignOne(s, 'farm')).not.toBeNull();
+  });
+  test('expansion gets more expensive each time and needs the coins', () => {
+    const s = newState();
+    const first = expandCost(s, 'mill');
+    s.coins = 0;
+    expect(expand(s, 'mill')).toBeNull();
+    s.coins = 1e6;
+    expand(s, 'mill');
+    expect(expandCost(s, 'mill')).toBeGreaterThan(first);
+  });
+});
+
+describe('M3: old saves', () => {
+  test('a save from before M3 loads with tier 1, no trait, 10 slots, no features (players keep their progress)', () => {
+    const old = JSON.parse(JSON.stringify(newState())) as any;
+    delete old.features; delete old.totalMerged;
+    for (const x of old.slimes) { delete x.tier; delete x.trait; }
+    for (const id of STATIONS) delete old.stations[id].slots;
+    migrate(old);
+    expect(old.slimes.every((x: any) => x.tier === 1 && x.trait === null)).toBe(true);
+    expect(STATIONS.every((id) => old.stations[id].slots === START_SLOTS)).toBe(true);
+    expect(old.features).toEqual([]);
   });
 });

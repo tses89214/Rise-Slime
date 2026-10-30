@@ -19,7 +19,7 @@ describe.each<Persona>(['random_assigner', 'optimizer', 'quitter'])('%s', (perso
     expect(events.length).toBeGreaterThan(30);
     for (const e of events) {
       expect(Schema.safeParse(e).success).toBe(true);
-      expect(e).toMatchObject({ client: 'bot', bot_persona: persona, game_version: '0.1.0', schema_version: 1 });
+      expect(e).toMatchObject({ client: 'bot', bot_persona: persona, game_version: '0.1.0', schema_version: 2 });
     }
   });
   test('seq is 0..n-1 with no gaps; event_time never goes backwards; ids are unique', async () => {
@@ -103,6 +103,30 @@ describe('personas differ', () => {
     expect(n.farm / total).toBeGreaterThan(0.2);
     expect(n.mill / total).toBeGreaterThan(0.3);
     expect(n.bakery / total).toBeGreaterThan(0.25);
+  });
+});
+
+describe('M3 events', () => {
+  test('features unlock once each, before the first merge; merges eat three slimes the bot owned', async () => {
+    const events = await play('optimizer', 1200);
+    const unlocked = of(events, 'feature_unlocked').map((e) => e.feature_id);
+    expect(new Set(unlocked).size).toBe(unlocked.length);
+    expect(unlocked).toContain('merge');
+    const merges = of(events, 'slime_merged');
+    expect(merges.length).toBeGreaterThan(0);
+    expect(events.indexOf(of(events, 'feature_unlocked')[0])).toBeLessThan(events.indexOf(merges[0]));
+    const known = new Set<string>(['slime-s0', 'slime-s1', 'slime-s2']);
+    for (const e of events) {
+      if (e.event_type === 'slime_purchased') known.add(e.slime_id);
+      if (e.event_type === 'slime_merged') {
+        for (const m of e.material_ids) { expect(known.has(m)).toBe(true); known.delete(m); }
+        known.add(e.slime_id);
+      }
+    }
+  });
+  test('no station ever holds more slimes than its slots', async () => {
+    const events = await play('random_assigner', 1800);
+    for (const t of of(events, 'production_tick')) for (const st of t.stations) expect(st.slimes).toBeLessThanOrEqual(10 + 5 * of(events, 'station_expanded').length);
   });
 });
 

@@ -20,6 +20,6 @@ export function makeEmitter(ctx: Ctx, sink: (e: GameEvent) => void) {
   let seq = 0;
   return function emit<T extends GameEvent['event_type']>(type: T, now: number, body: Body<T>) {
     const iso = new Date(now).toISOString();
-    sink({ event_id: uuid7(now), event_type: type, schema_version: 1, ...ctx, seq: seq++, event_time: iso, sent_at: iso, ...body } as unknown as GameEvent);
+    sink({ event_id: uuid7(now), event_type: type, schema_version: 2, ...ctx, seq: seq++, event_time: iso, sent_at: iso, ...body } as unknown as GameEvent);
   };
 }
