@@ -22,4 +22,4 @@ Game/spec decisions live in `docs/decisions/`. This file holds the infrastructur
 - **Late events: allowed lateness + upsert, not a wider watermark.** A 10 min watermark would delay every window by 10 min. Instead windows re-emit on each late row (15 min allowed lateness); sinks are `upsert-kafka` keyed by the window, ClickHouse `ReplacingMergeTree(version)` where version = rows in the window (monotonic, so no clock needed). Cost: every read of those tables needs `FINAL`.
 - **`late_1m` is windowed by `sent_at`.** Late rows are exactly what event-time windows hide, so counting them needs the other clock. `pipeline_1m.late` was removed (it could only ever read 0).
 - **M3 game rules and schema v2**: see `docs/decisions/2026-10-30-m3-merge-rules.md`.
-
+- **Resubmit via savepoint.** Checkpoints + a shared `flink-state` volume; `scripts/flink-restart.sh` stops with a savepoint and starts the new job with `-Dexecution.savepoint.path`, so editing job.sql does not replay Kafka. Only works while the operator graph is compatible; otherwise cancel and replay.

@@ -71,24 +71,32 @@ services:
         rest.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 4
         parallelism.default: 2
+        execution.checkpointing.interval: 10 s
+        state.checkpoints.dir: file:///opt/flink/state/checkpoints
+        state.savepoints.dir: file:///opt/flink/state/savepoints
+    volumes: [flink-state:/opt/flink/state]
     depends_on: [kafka, kafka2]
 
   flink-taskmanager:
     build: pipeline/flink
     command: taskmanager
     environment: *flink-env
+    volumes: [flink-state:/opt/flink/state]
     depends_on: [flink-jobmanager]
 
   # one-shot: runs job.sql, leaves the streaming job running on the cluster, then exits. Re-run after editing job.sql.
   flink-sql:
     build: pipeline/flink
     profiles: ["submit"]
-    command: /opt/flink/bin/sql-client.sh -f /job/job.sql
-    environment: *flink-env
+    command: sh -c '/opt/flink/bin/sql-client.sh $$SQL_ARGS -f /job/job.sql'   # SQL_ARGS: scripts/flink-restart.sh passes -Dexecution.savepoint.path=...
+    environment:
+      <<: *flink-env
+      SQL_ARGS: ${SQL_ARGS:-}
     volumes: ["./pipeline/flink/job.sql:/job/job.sql:ro"]
     depends_on: [flink-jobmanager, flink-taskmanager]
 
 volumes:
   clickhouse-data:
+  flink-state:
   kafka-data:
   kafka2-data:

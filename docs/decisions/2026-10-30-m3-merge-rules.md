@@ -10,4 +10,4 @@ Implemented in `src/core/sim.ts`; numbers stay provisional as in the spec.
 - **Schema v2**: new events `slime_merged`, `station_expanded`, `feature_unlocked` (version 2 only) and optional `tier` / `trait` on `slime_assigned`. v1 events remain valid. The emitter now stamps 2.
 - **Bots** merge only when slimes are waiting and every station is full; the optimizer expands instead when that is cheaper than a slime.
 - **Bot fault injection**: `--disconnect-rate` (per bot-minute, 30 s to 10 min offline) and `--max-buffer`. Buffered events are sent on reconnect with `sent_at` = reconnect time, so `event_time` is well before `sent_at`; past the buffer limit the oldest are dropped and `seq` gets a gap.
-- **Not built**: tier/trait art (merged slimes look like plain ones), the Slimes tab (merge is a button next to Buy Slime), the Upgrades tab.
+- **Look**: no new sprite art. Tier is a `T2`/`T3` badge and trait is a coloured glow, both CSS on the existing sheet. A roster line above the lounge counts slimes per tier and trait. Merge and Expand are plain buttons, not a Slimes/Upgrades tab.

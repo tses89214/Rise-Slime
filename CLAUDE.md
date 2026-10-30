@@ -59,7 +59,8 @@ scripts/demo.sh [farm,mill,bakery,lounge]   # dev server + open game with a seed
 VITE_TELEMETRY=true npm run dev  # browser game, events -> VITE_COLLECTOR_URL (default localhost:3000/events)
 npm run build                    # itch.io build: no event-sending code
 docker compose up -d             # Kafka x2 + Kafka UI (:8080) + ClickHouse (:8123) + Flink (:8081); data kept in volumes, `down -v` wipes
-docker compose --profile submit run --rm flink-sql   # (re)submit pipeline/flink/job.sql; cancel the old job in the Flink UI first
+docker compose --profile submit run --rm flink-sql   # first submit of pipeline/flink/job.sql (replays Kafka)
+scripts/flink-restart.sh                             # after editing job.sql: savepoint the running job and resume from it, no replay
 KAFKA_BROKERS=localhost:9092 npm run collector   # unset KAFKA_BROKERS = print to stdout; also serves the ops dashboard at http://localhost:3000/dashboard
 npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # or --out file.jsonl; --speed 60 for real-time pacing; --disconnect-rate/--max-buffer for late events
 ```
@@ -80,7 +81,7 @@ npm run bots -- --bots 20 --seconds 600 --url http://localhost:3000/events   # o
 
 ## Repo state
 
-M1 first version done: core sim, events, bots, collector, browser game with original art. Also done: achievements (UI + `achievement_unlocked` event, bots emit it), production popups, customers leaving with bread. Not yet: Phaser, tier/trait art and the Slimes/Upgrades tabs (merge/expand are plain buttons), M4, the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.
+M1 first version done: core sim, events, bots, collector, browser game with original art. Also done: achievements (UI + `achievement_unlocked` event, bots emit it), production popups, customers leaving with bread. Not yet: Phaser, the Slimes/Upgrades tabs (merge/expand are buttons; tier = badge, trait = glow, no new art), M4, the spec's Level-up/squish sounds (formats unusable here). Sim rule: a cycle only starts when its input is on hand.
 
 ## 每次會話流程
 

@@ -48,6 +48,14 @@
   .sprite { background-repeat:no-repeat; flex:none; }
   .slime { --w:calc(16*var(--u)); width:var(--w); height:var(--w); margin:calc(-3*var(--u)) 0; background-image:url(/original/slimes.png); background-size:calc(144*var(--u)) calc(80*var(--u)); background-position-y:calc(var(--row,0) * -16 * var(--u)); }
   .slime, .sleeper { display:inline-block; }
+  /* M3: tier shows as a badge, trait as a glow (CSS only, the sprite sheet is unchanged) */
+  .slime[data-tier] { position:relative; }
+  .slime[data-tier]::after { content:'T' attr(data-tier); position:absolute; right:calc(1*var(--u)); top:calc(3*var(--u)); font:calc(5*var(--u)) m5x7,monospace; color:#fff; background:var(--ink); padding:0 calc(1*var(--u)); }
+  .slime[data-trait=leaf] { filter:drop-shadow(0 0 calc(1.5*var(--u)) #4FAF6A) saturate(1.4); }
+  .slime[data-trait=stone] { filter:drop-shadow(0 0 calc(1.5*var(--u)) #8A7A6A) contrast(1.2); }
+  .slime[data-trait=flame] { filter:drop-shadow(0 0 calc(1.5*var(--u)) #FF6B3D) saturate(1.4); }
+  .slime[data-trait=lucky] { filter:drop-shadow(0 0 calc(1.5*var(--u)) #FFD23F) brightness(1.15); }
+  #roster { color:var(--ink2); padding:6px 16px; margin-bottom:16px; }
   .a-idle { animation:idle 1s step-end infinite; }
   .a-hop { animation:hop .5s step-end infinite; }
   .a-sleep { animation:sleep 1.33s step-end infinite; }
@@ -130,7 +138,7 @@
   #bottom { display:flex; gap:16px; flex-wrap:wrap; }
   #lounge { flex:1; min-width:260px; padding:10px 16px; display:flex; align-items:center; gap:20px; }
   #lounge .slimes { margin-left:auto; display:flex; align-items:flex-end; }
-  #buy, #merge { width:300px; max-width:100%; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:kenpixel,monospace; }
+  #buy, #merge { width:230px; max-width:100%; display:flex; flex-direction:column; align-items:center; gap:2px; font-family:kenpixel,monospace; }
   #buy small, #merge small { font:32px m5x7,monospace; }
   #toast { position:fixed; right:16px; bottom:16px; z-index:10; padding:8px 16px; background:var(--primary); border:4px solid var(--ink); box-shadow:4px 4px 0 var(--ink); transform:translateY(200%); transition:transform .25s steps(4); }
   #toast.show { transform:none; }
@@ -162,6 +170,7 @@
   </header>
   <section id="scene" class="box" aria-label="Bakery scene"></section>
   <section id="stations"></section>
+  <div id="roster" class="box" hidden></div>
   <section id="bottom">
     <div id="lounge" class="box"><div><h2 style="font-size:40px">LOUNGE</h2><div style="color:var(--ink2)">New slimes wait here. Tap + on a station to assign.</div></div><div class="slimes" id="lounge-slimes"></div></div>
     <button id="merge" class="primary" hidden><span>MERGE</span><small>3 → 1 stronger</small></button>

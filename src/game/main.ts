@@ -58,6 +58,9 @@ if (demo) {
   s = newState({ farm: f, mill: m, bakery: b });
   s.coins = 1e6;
   for (let i = 0; i < l; i++) buySlime(s);
+  // a few merged / mutated slimes to look at
+  const lounge = s.slimes.filter((x) => x.station === null);
+  [[2, 'leaf'], [3, 'flame'], [2, 'lucky'], [2, 'stone'], [4, null]].forEach(([tier, trait], i) => { if (lounge[i]) Object.assign(lounge[i], { tier, trait }); });
   s.coins = 20;
 }
 
@@ -150,7 +153,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-plus],[data-minus],[data-up]
 // Elements are looked up once; text/classes are only written when the value changed (writes cost layout even when identical).
 const el = (id: string) => document.getElementById(id)!;
 const ui = {
-  coins: el('coins'), income: el('income'), buy: el('buy') as HTMLButtonElement, buyCost: el('buy-cost'), merge: el('merge') as HTMLButtonElement, windmill: el('windmill'), oven: el('oven'), shopFx: el('shop-fx'),
+  coins: el('coins'), income: el('income'), buy: el('buy') as HTMLButtonElement, buyCost: el('buy-cost'), merge: el('merge') as HTMLButtonElement, roster: el('roster'), windmill: el('windmill'), oven: el('oven'), shopFx: el('shop-fx'),
   st: Object.fromEntries(STATIONS.map((id) => [id, {
     n: el(`${id}-n`), lv: el(`${id}-lv`), rate: el(`${id}-rate`), ql: el(`${id}-ql`), qn: el(`${id}-qn`), bar: el(`${id}-bar`), card: el(`card-${id}`),
     up: document.querySelector<HTMLButtonElement>(`[data-up="${id}"]`)!, plus: document.querySelector<HTMLButtonElement>(`[data-plus="${id}"]`)!, minus: document.querySelector<HTMLButtonElement>(`[data-minus="${id}"]`)!, expand: document.querySelector<HTMLButtonElement>(`[data-expand="${id}"]`)!,
@@ -163,10 +166,22 @@ const setHtml = (id: string, key: string, html: string) => { if (keys.get(id) !=
 // colour follows the job: lounge blue, farm green (leafy), mill brown (rocky), bakery red (fiery); cosmetic in M1
 const ROW: Record<string, number> = { lounge: 0, farm: 1, mill: 2, bakery: 3 };
 const slimeEl = (sl: Slime, anim: string, i: number, zzz = false) =>
-  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
+  `<span class="${zzz ? 'sleeper' : ''}"><span class="slime sprite a-${anim}"${sl.tier > 1 ? ` data-tier="${sl.tier}"` : ''}${sl.trait ? ` data-trait="${sl.trait}"` : ''} title="Tier ${sl.tier}${sl.trait ? ' · ' + sl.trait : ''}" style="--row:${ROW[sl.station ?? 'lounge']};animation-delay:-${(i * 0.17).toFixed(2)}s"></span>${zzz ? `<span class="zzz">${item(4)}</span>` : ''}</span>`;
 const crowd = (list: Slime[], anim: string, zzz = false) =>
   list.slice(0, MAX_DRAWN).map((sl, i) => slimeEl(sl, anim, i, zzz)).join('') + (list.length > MAX_DRAWN ? `<span class="more">+${list.length - MAX_DRAWN}</span>` : '');
 const keyOf = (list: Slime[], anim: string) => `${anim}:${list.slice(0, MAX_DRAWN).map((x) => x.id).join()}:${list.length}`;
+
+// "Tier 1 x5 · Tier 2 x2 (leaf x1)": the Slimes roster. Empty until there is something beyond plain tier-1 slimes to tell apart.
+function rosterText(list: Slime[]) {
+  if (!list.some((x) => x.tier > 1 || x.trait)) return '';
+  const tiers = new Map<number, Slime[]>();
+  for (const x of list) tiers.set(x.tier, [...(tiers.get(x.tier) ?? []), x]);
+  return [...tiers].sort((a, b) => a[0] - b[0]).map(([t, xs]) => {
+    const traits = new Map<string, number>();
+    for (const x of xs) if (x.trait) traits.set(x.trait, (traits.get(x.trait) ?? 0) + 1);
+    return `Tier ${t} ×${xs.length}${traits.size ? ` (${[...traits].map(([k, n]) => `${k} ×${n}`).join(', ')})` : ''}`;
+  }).join(' · ');
+}
 
 const lastMade = Object.fromEntries(STATIONS.map((id) => [id, s.stations[id].made ?? 0])) as Record<StationId, number>;
 const ITEM_OF: Record<StationId, number> = { farm: 0, mill: 1, bakery: 2 }; // wheat, flour, bread sprites in items.png
@@ -191,6 +206,9 @@ function render() {
   ui.buy.disabled = s.coins < cost;
   setText(ui.buyCost, `${fmt(cost)} coins`);
   ui.merge.hidden = !s.features.includes('merge');
+  const roster = rosterText(s.slimes);
+  ui.roster.hidden = !roster;
+  setText(ui.roster, roster);
   ui.merge.disabled = !canMerge(s);
   const by: Record<string, Slime[]> = { lounge: [], farm: [], mill: [], bakery: [] }; // group once
   for (const sl of s.slimes) by[sl.station ?? 'lounge'].push(sl);
