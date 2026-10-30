@@ -1,0 +1,6 @@
+- [User: Po](user-po.md) — data engineer, zh-TW, wants autonomous decisions
+- [Autonomy and tests feedback](feedback-autonomy-and-tests.md) — decide yourself, full tests when asked, fix glitches at root
+- [Rise-Slime state](project-rise-slime-state.md) — M1-M3 done, next M4
+- [Asset download notes](reference-asset-download.md) — OGA and itch.io fetch flow
+- [Verify UI visually](feedback-verify-ui-visually.md) — headless Chrome screenshot after every UI change
+- [Docs and explanations](feedback-docs-and-explanations.md) — update docs with the work, colour/shape-coded diagrams, full content inside cards

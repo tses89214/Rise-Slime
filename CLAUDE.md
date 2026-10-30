@@ -89,10 +89,11 @@ M1 first version done: core sim, events, bots, collector, browser game with orig
 ### 上班打卡（會話開始時）
 1. 讀 `.claude/PROGRESS.md` 了解當前狀態與下一步
 2. 讀 `.claude/DECISIONS.md` 了解重要設計決策
+3. 讀 `.claude/memory/MEMORY.md`（專案記憶索引：使用者偏好、回饋、專案狀態；是 Claude 自動記憶的副本，改記憶時兩邊同步）
 
 ### 下班打卡（會話結束或任務完成時）
 1. 更新 `.claude/PROGRESS.md`（當前狀態、已完成、下一步）
-2. 若有新的重要設計決策，補記到 `.claude/DECISIONS.md`
+2. 若有新的重要設計決策，補記到 `.claude/DECISIONS.md`；有新的使用者偏好或專案狀態，同步更新 `.claude/memory/`
 3. Commit 所有已完成工作
 
 判斷標準：短任務（單次會話可完成）可不更新進度檔。跨會話任務或有重要決策時必須更新。
