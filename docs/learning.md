@@ -10,11 +10,11 @@
 | 第 2 課 Collector(含 schema 演進,第 7–10 節) | 完成 |
 | 處理線總覽(6 條線) | 完成 |
 | 第 3 課 Flink:table、watermark、window | 完成 |
-| 第 3 課 Flink:state、changelog | **未講** |
-| 第 4 課 `job.sql` 逐段讀 | 未講 |
+| 第 3 課 Flink:state、changelog | 完成 |
+| 第 4 課 `job.sql` 逐段讀 | 完成(練習題 1–4 檢討完畢) |
 | 第 5 課 ClickHouse | 未講 |
 | 第 6 課 問題:client 時鐘與 watermark | 未講(結論已在文末「已知問題」,未實測) |
-| 練習題 1–9 | 已作答;**逐題檢討到第 2 題**(含 Flink 停機延伸題),第 3–9 題待逐題檢討 |
+| 練習題 1–9 | 已作答;**檢討完畢**(含 Flink 停機延伸題) |
 
 練習題中還不穩的地方(下次檢討重點):
 - 第 6 題:`upsert-kafka` 每次送出都是 Kafka 上新的一則;每一列是視窗的累計值(不是增量),所以不加 `FINAL` 會重複加總。
@@ -641,6 +641,30 @@ GROUP BY HOP(event_time, INTERVAL '1' MINUTE, INTERVAL '10' MINUTE)   -- 滑動�
 
 不可相加的聚合:`COUNT(DISTINCT)`(同一個 x 出現在多個視窗)、`AVG`(平均的平均會錯,要存 sum 與 count)、中位數與百分位(無法從部分結果還原)。可相加的:`SUM`、`COUNT`。所以 `init.sql` 的註解說 uniq 計數要「per window,not derived from other aggregates」;要兩分鐘的玩家數,得對 `events` 重算。
 
+### State 與 changelog
+
+**State**:Flink 為了「記得過去」存的東西。`job.sql` 兩處:
+
+| 位置 | 存什麼 | 何時清掉 |
+| --- | --- | --- |
+| 視窗聚合 | 每個還沒關閉的視窗的累計值 | 視窗結束 + 15 分(`allow-lateness`) |
+| `events_dedup`(`ROW_NUMBER() OVER (PARTITION BY event_id ...)`) | 每個 `event_id` 一筆,用來認出看過了 | `table.exec.state.ttl = 1 h` |
+
+- 去重 state 的取捨:TTL 越長越準、state 越大。超過 1 小時才到的重複 `event_id` 抓不到,影響用 `events_dedup` 的線 2(`production_1m`)與線 4(`ops_1m`);線 3(`pipeline_1m`)不去重、線 1(`events`)靠 `ReplacingMergeTree`,都不受影響。和「30 天 DAU 不放 Flink」同一個道理(state 太大)。
+- 保存:checkpoint 定期把 state 與 Kafka offset 一起存(專案每 10 秒,`flink-state` volume);恢復時還原 state 並從對應 offset 接著讀。沒帶 savepoint 重新提交 = 全新 job,state 空白、從 `earliest-offset` 重讀。
+
+**Changelog**:視窗在 allowed lateness 內收到遲到事件,結果要被修正,Flink 把輸出視為一串變更:`+I` 新增、`-U` 舊值撤回、`+U` 新值、`-D` 刪除。視窗先送 20、後來變 26:`+I(20)`,再 `-U(20)`、`+U(26)`。
+
+**`upsert-kafka` 與 `PRIMARY KEY`**:
+
+- 一般 Kafka sink 只能 append,表達不了「修正」。`upsert-kafka` 要求宣告 `PRIMARY KEY`,它成為 Kafka 訊息的 key;同 key 進同一條 partition,版本依序排列。舊訊息仍在 Kafka,不會被改掉(所以第 6 題 Kafka 上有 3 則)。
+- ClickHouse 端靠 `ReplacingMergeTree(version)` 收斂,`FINAL` 讀。串起來:Flink changelog → `upsert-kafka` 每次一則新訊息 → ClickHouse 用 `version` 收斂。
+- `PRIMARY KEY` = `GROUP BY` 欄位 + `window_start`,定義「什麼叫同一個視窗的不同版本」。例:`pipeline_1m` 按 `event_type` 分組(看管線健康:各事件類型的數量、重複、延遲),`production_1m` 按 `station` 分組(看遊戲內容:各站產出)。
+- `NOT ENFORCED`:Flink 不檢查。key 寫錯(例如漏掉 `client`)不會報錯,不同 client 的視窗被當成同一筆的不同版本,下游互相覆蓋,數字悄悄錯。沒宣告 `PRIMARY KEY` 時 `upsert-kafka` 會在提交時報錯(依 Flink 文件,沒在本專案實測)。
+- 沒實測:`-U/+U` 在本專案 sink 實際怎麼送出,是讀文件的推論;`late-fire` 那組設定是 Flink 1.20 保留的舊功能(風險見 `PROGRESS.md`)。
+
+**練習**:(1) `state.ttl` 1 h 改 10 分鐘,哪類問題增加?→ 較晚到的重複 `event_id` 抓不到,影響線 2、線 4。(2) 為什麼 sink 要宣告 `PRIMARY KEY`?→ 定義同一視窗的新舊版本,見上。(3) 為什麼 `pipeline_1m` 的 key 末欄是 `event_type`、`production_1m` 是 `station`?→ 分組不同,見上。
+
 ### 練習題與解答(第 1–3 課)
 
 1. **1 條 partition、`parallelism = 2`:** 只有 1 個 source 任務讀得到資料,另一個閒置。它的 watermark 不動,所以靠 `idle-timeout = 10 s` 把它排除,否則整個 job 的 watermark 被卡住。source 之後的運算(分組、視窗)仍可平行。
@@ -703,9 +727,152 @@ GROUP BY HOP(event_time, INTERVAL '1' MINUTE, INTERVAL '10' MINUTE)   -- 滑動�
   | 連續兩次 bot `--speed` 測試(`PROGRESS.md` 那條) | 丟:前一次把 watermark 推到「未來」,下一次的事件相對變成很舊 |
 - 前提是 Flink 要從上次的位置恢復(checkpoint / savepoint 裡的 offset)。依 `docker-compose.yml` 的推論:沒有設定高可用,Flink 容器重啟後 job 不會自動回來,要重新執行 `flink-sql` 提交;沒帶 savepoint 就是新 job,`earliest-offset` 從 Kafka 最舊的訊息重讀整個 `events`。這個推論沒有實測,與 `PROGRESS.md` 的 "Resubmitting `job.sql` replays all of Kafka" 一致。用 `scripts/flink-restart.sh`(帶 savepoint)可避免。
 
-**第 3–9 題:待逐題檢討**(解答已在上一節)。
+**第 3 題:Kafka 掛掉時瀏覽器的事件(檢討完)**
 
-第 3 課尚未講:state、changelog。
+作答:事件在瀏覽器 local;不能進 DLQ 因為 Kafka 掛了;可能不會補;bot 不會不同。對兩點半,錯兩點:
+
+- 事件**不在**瀏覽器 local。`src/game/telemetry.ts` 的送出是 `fetch(...).catch(() => {})`,即時送、不暫存、不重試。collector 回 500 是正常 HTTP 回應,連 `.catch` 都不進。localStorage 存的是遊戲存檔,不是事件。
+- 不進 DLQ 的理由對,補一層:DLQ 收「內容不合法」的事件,這裡是內容合法但送不出去(基礎設施故障);DLQ 本身也是 Kafka。
+- 補不回來是確定的(讀碼確認),不是「可能」。
+- bot 不同:`src/bots/run.ts` 有斷線暫存(`--disconnect-rate`、`--max-buffer`),補送的事件 `sent_at` 晚於 `event_time`,會被 `late_1m` 數到;超過 `max_buffer` 丟最舊的,`seq` 留缺口。但那模擬的是 bot 自己斷線;bot 收到 collector 的 500 時怎麼處理,沒讀,不下結論。
+- 盲點:以為瀏覽器與 bot 行為一樣。入口是「至多一次」,只有 bot 有補送。
+
+**第 4 題:watermark 逐筆推算(檢討完)**
+
+作答:最大值 12:01:15、watermark 12:01:05(只給終點);第 5 筆送出;視窗內 5 筆;第 4 筆不算遲到,理由「12:00:30 在窗口內」。
+
+- 第 1 小題:終點值對,但要逐筆列。重點是第 4 筆(12:00:40)比最大值小,最大值與 watermark 都不動;watermark 只前進,不因舊事件倒退。
+- 第 2 小題對:第 3 筆後 watermark 12:00:58,差 2 秒;第 5 筆後 12:01:05 越過 12:01:00。
+- 第 3 小題錯:是 3 筆(第 1、2、4 筆)。視窗依 `event_time` 分組,不是依到達順序;第 3、5 筆屬於 [12:01, 12:02)。錯因:把「到目前收到幾筆」和「這個視窗有幾筆」混在一起。
+- 第 4 小題結論對,理由有兩處要修:事件是 12:00:**40**(不是 12:00:30);而且「在窗口內」只是必要條件,遲到看的是**到達時視窗送出了沒**。第 4 筆到達時 watermark 12:00:58,視窗未送出,所以不遲到。若它在第 5 筆之後才到,視窗已送出過,這時算遲到,但 15 分鐘 allowed lateness 內仍會被算進去並重新送出(upsert 與 `version` 的來源);超過 15 分鐘才丟。
+
+**第 5 題:遲到太久的事件(檢討完)**
+
+作答:不會算進去,因為 12:12 離 12:30 超過 15 分鐘;三張表都不會有。
+
+- 結論對,算法要改:清除時間 = **視窗結束** + 15 分,不是事件時間 + 15 分。事件 12:12:30 屬於 [12:12, 12:13),清除時間 12:28 ≤ watermark 12:30,丟。邊界例子:事件 12:14:30 → 視窗結束 12:15 → 清除 12:30,watermark 12:30 已到,丟;事件 12:15:30 → 清除 12:31,還沒到,不丟。
+- 三張表只對一張:`events` **有**(線 1 逐筆攤平,沒有視窗,不看 watermark);`production_1m` 沒有;`late_1m` 看 `sent_at`(bot 補送的 `sent_at` 晚於 `event_time` → 有;瀏覽器 `sent_at` = `event_time` → 沒有)。答案要寫條件。
+- 盲點:漏了 `events`。視窗丟掉的只是聚合那條線,原始事件仍在,可以從 `events` 重算。
+
+**第 6 題:同一視窗送出 3 次(檢討完)**
+
+作答:Kafka 3 則;ClickHouse merge 前 3 列、merge 後 1 列;不加 `FINAL` 是 3 倍;加 `FINAL` 是最新一筆。
+
+- 全對,只有「3 倍」要修:每列是送出當時整個視窗的**累計值**,三列的值不同(例:100、130、150,真值 150,`sum` 得 380,約 2.5 倍)。正確說法是「重複加總,倍數看各次的值」,不是剛好 3 倍。
+- merge 是背景工作,時間不固定,所以查詢不能假設已 merge,要加 `FINAL`。
+- 延伸題(設計取捨,未作答):為什麼送累計值不送增量?送增量時同一個增量被送兩次(例如 Flink 重啟重送)會重複加總,而累計值加上 `version` 去重是冪等的。
+
+**第 7 題:同一個 `event_id` 送兩次(檢討完)**
+
+作答:線 1 兩次都寫進去、merge 後 1 列(對);線 2 算兩次(錯);線 3 不知道;線 4 看不懂題目(題目把「處理線 4」寫成像「第 4 題」,是出題的問題,已重述)。
+
+| 線 | 算幾次 | 為什麼 |
+| --- | --- | --- |
+| 1 `events` | merge 前 2 列、merge 後 1 列 | 不去重,靠 `ReplacingMergeTree` 收斂 |
+| 2 `production_1m` | 1 次 | 經過 `events_dedup` |
+| 3 `pipeline_1m` | `COUNT(*)` = 2、`COUNT(DISTINCT event_id)` = 1、`duplicates` = 1 | 不去重,專門數重複 |
+| 4 `ops_1m` | 1 次 | 經過 `events_dedup` |
+
+- 錯因:把線 1(不去重)的行為套到線 2。看每條線的來源有沒有 `events_dedup`。
+- 線 3 若先去重,`duplicates = COUNT(*) - COUNT(DISTINCT event_id)` 永遠是 0。作答「不去重才抓得到重複送的情況」正確。
+- 記法:業務數字(線 2、4)去重,否則產出、玩家數被灌水;監控重複的數字(線 3)與原始備份(線 1)不去重。
+
+**第 8 題:新增事件類型 `order_completed`(檢討完)**
+
+作答:升版本(有變就升);改 collector;事件被丟棄;`events` 表不用改。
+
+- 升版:可以,理由要說明:慣例是升並限制新事件的 `schema_version`,讓舊 client 不可能產生新事件,schema 能擋掉不該出現的組合。技術上只新增是向後相容,不升也能跑。
+- 要改的不是 collector 程式碼(Python 只讀 JSON Schema),是源頭:`src/events/schema.ts` 加事件 → `npm run schema` 匯出 `event.schema.json` → **重啟 collector**(啟動時 `collector/main.py:18` 才讀進 `SCHEMA`)。
+- 沒做的後果:不是「丟棄」,是進 `events.dlq`,錯誤 `event_type: unknown event_type`(`collector/main.py:33`、`:42`)。事件完好保留,符合「不默默丟」。
+- `events` 表不用改(欄位在 `payload`)。漏答另一半:`ops_1m` 不會自動多「訂單數」欄位,要改 `job.sql`、`ops_1m` DDL、`kafka_ops_1m` 與 MV,`init.sql` 只在首次啟動跑,既有環境要 `ALTER`,再重新提交 Flink job。`pipeline_1m` 依 `event_type` 分組,新類型自動出現。
+- 共通概念:啟動時載入(`event.schema.json`)、只在首次執行(`init.sql`)、job 定義(Flink),改了不會自動生效。
+
+**討論:Kafka 有 event type 清單嗎?(補充)**
+
+沒有。Kafka topic 只是位元組,什麼都收;清單在 `event.schema.json`,由 collector 的 `route()` 檢查。下游 Flink 只用 `WHERE event_type = ...` / `FILTER` 挑自己要的類型,不認得的略過、不報錯。整條鏈路只有 collector 一處檢查類型清單。
+
+驗證放哪裡的取捨:
+
+| 位置 | 優點 | 缺點 |
+| --- | --- | --- |
+| Collector(本專案) | 最簡單;壞事件進不了 `events`;DLQ 就在旁邊 | 沒有 schema 版本管理;要重啟才生效;繞過 collector 直接寫 `events` 就不被驗證(靠慣例,非強制) |
+| Schema Registry | 版本與相容性規則;所有 producer 都受管 | 多一個服務;需 Avro/Protobuf/JSON Schema 序列化;對小專案過重 |
+| Flink | 驗證可和處理合在一起 | 壞資料已進 `events`,線 1 原始備份被污染;SQL 裡寫驗證笨重 |
+
+選 collector 的理由:只有一個入口、DLQ 分流最自然、zod 是唯一真相來源。Schema Registry 一欄是一般知識,本專案沒用、沒實測;「不選 Registry 是因為專案規模與學習焦點」是設計理由,不是技術限制。
+
+**第 9 題:最近 30 天 DAU 放哪(檢討完)**
+
+作答:ClickHouse 算;Flink 處理秒到分鐘級,十分鐘是上限,超過給 ClickHouse,免得 Flink 壓力太大。
+
+- 結論對。理由只有 (a)(state 負擔),且「十分鐘上限」要修:那是經驗法則,不是 Flink 的限制;Flink 能開小時、天的視窗,代價是 state 大(每個玩家 ID 都要保留到視窗關閉,checkpoint 變慢)。
+- 漏了 (b),最根本:`COUNT(DISTINCT)` 不可相加。同一玩家 12:00 與 12:30 各在一個一分鐘視窗,相加得 2,真值 1。就算 Flink 每分鐘送出活躍玩家數,也拼不出 DAU,必須回到原始事件重算。
+- 漏了 (c):原始事件完整保留在 `events`,定義改了(例如 DAU 改成「至少玩 1 分鐘」)可隨時重算、回填;由 Flink 預先算好的,只能靠重放 Kafka,而 Kafka 有 retention。
+- 專案的 `activity_daily` view 就是 ClickHouse 讀取時從 `events` 聚合 DAU / WAU / MAU。
+
+練習題 1–9 檢討完畢。
+**練習題中的盲點整理:**
+- 把某條線的行為套到另一條線(第 7 題線 1 vs 線 2)。
+- 視窗分組看 `event_time`,不是到達順序(第 4 題);遲到看「到達時視窗送出了沒」。
+- 丟掉的只是視窗聚合那條線,`events` 仍有(第 5 題)。
+- 入口至多一次,瀏覽器不暫存(第 3 題)。
+- 啟動時載入 / 只在首次執行的東西改了不自動生效(第 8 題)。
+
+第 3 課已講完(state、changelog 見上方「State 與 changelog」)。
+
+---
+
+## 第 4 課:`job.sql` 逐段讀
+
+| 行數 | 段落 | 做什麼 |
+| --- | --- | --- |
+| 1–10 | `SET` 設定 | 時區、idle-timeout 10 s、allowed lateness 15 min + late-fire、state TTL 1 h(只影響 `events_dedup`) |
+| 12–54 | source / sink 表 | 同一個 topic `events` 讀三次 |
+| 56–60 | `events_dedup` view | 每個 `event_id` 留第一筆 |
+| 62–90 | 4 張 upsert-kafka sink | 對應 ClickHouse 窗口表 |
+| 93–141 | `EXECUTE STATEMENT SET` | 5 個 `INSERT` 合成一個 Flink job(只有一個東西要 cancel / 重送) |
+
+### 同一個 topic 讀三次
+
+| 表 | group.id | 用途 | 時鐘 |
+| --- | --- | --- | --- |
+| `events_raw` | `flink-events` | 整行當字串,`JSON_VALUE` 抽欄位,`payload` 原樣保留(線 1) | 無 |
+| `events_typed` | `flink-typed` | 解析成欄位給窗口算 | `event_time` |
+| `events_sent` | `flink-sent` | 只取 3 欄,給 `late_1m`(線 5) | `sent_at` |
+
+- `WATERMARK FOR` 一張表只能一個時間欄位,所以要兩種時鐘就得兩張表(一張表只能一個 `WATERMARK` 是我對 Flink 的了解,推斷, 沒有實測)。
+- `events_typed` 的 `json.ignore-parse-errors = true`:解析失敗的行變成全 NULL 的列,**靜默**。壞資料已被 collector 擋掉,所以少見。
+- `latency_ms` 是 computed column(`ingested_at − event_time`),讀取時才算。
+- `events_dedup` 的 `ORDER BY event_time ASC` 不能亂換:Flink 靠它認出「依 rowtime 去重」,輸出才保有 rowtime,後面的窗口才算得下去。
+
+### 五個 INSERT
+
+| 線 | 來源 | 去重 | 分組 | 重點 |
+| --- | --- | --- | --- | --- |
+| 1 `events` | `events_raw` | 否 | — | 平的一列一事件 |
+| 2 `production_1m` | `events_dedup` | 是 | `client, station` | `CROSS JOIN UNNEST(stations)` 一事件拆成每 station 一列 |
+| 3 `pipeline_1m` | `events_typed` | 否 | `client, event_type` | `COUNT(*) − COUNT(DISTINCT event_id)` = 重複筆數 |
+| 4 `ops_1m` | `events_dedup` | 是 | `client` | 一堆 `FILTER (WHERE event_type = ...)` 一次掃描算多個指標 |
+| 5 `late_1m` | `events_sent` | 否 | `client` | 窗口用 `sent_at`,延遲 > 10 s 算 late |
+
+每個 INSERT 最後一欄 `COUNT(*)` 就是 `version`。第 103 行註解:用 `TUMBLE` table function 加 view 會觸發 planner bug,所以用 `GROUP BY TUMBLE(...)` 舊式語法(專案註解的說法,沒有實測)。
+
+### 練習題與檢討(第 4 課)
+
+**第 1 題**(`production_1m` 的 `COUNT(*)` 數什麼):答「每個 station 的事件數」,**對**。`UNNEST` 後每個 `(window, client, station)` 的列數。補充:各 station 的 `version` 加總不是事件數(一個事件在每個 station 各算一次)。每個 tick 是否一定帶齊所有 station 沒查(推斷, 沒有實測)。
+
+**第 2 題**(為什麼要 `events_sent`):**對一半**。對:兩張表 watermark 時鐘不同。修正:「後者才抓得到延遲資訊」不準,`sent_at − event_time` 兩邊都算得出來。真正差別是**窗口按哪個時鐘切**:`event_time` 窗口裡,遲到超過 15 分鐘的事件屬於已清掉的舊窗口,被丟掉沒人算;`sent_at` 窗口裡它屬於「現在送出」的窗口,會被算到,也能判斷遲到。盲點:把「時鐘」和「資訊內容」混在一起。
+
+**第 3 題**(`new_players` 拿掉 `DISTINCT` 會變嗎):**對**,理論上不變(一個玩家只有一次 `is_new_player` 的 `session_start`)。補充:來源是 `events_dedup`,重複的 `event_id` 早被去掉,所以 `DISTINCT` 在這裡是多餘的防線;真正需要的是 `active_players`(同玩家一分鐘多個事件)。沒查:`is_new_player` 是否保證只出現一次(推斷, 沒有實測);玩家清 localStorage 會拿到新 `player_id`,算新玩家是合理的。
+
+**第 4 題**(`ch_ops_1m` 的 PK 改成只有 `(window_start)`):你答「不同 client 會被算在同一個窗口」,方向對但位置錯。Flink 的運算沒變(`GROUP BY` 還是含 `client`),**衝突發生在寫進 Kafka 那步:不同 client 的列 key 一樣**。例:窗口 12:00 有 `web 10`、`bot 50` 兩列,PK 設對時 key 是 `{12:00,web}`、`{12:00,bot}`;PK 設錯時兩則 key 都是 `{12:00}`,`upsert-kafka` 把它解讀成「同一列被更新」。
+
+- Kafka 預設不去重,每則都留著;只有 topic 開了 **log compaction** 才會「同 key 只留最後一則」,這時 `web` 那列會消失。
+- 我 grep 過 compose/腳本沒找到 compaction 設定,所以目前大概不會缺資料(推斷, 沒有實測)。這種錯很安靜,等 topic 設定改了才顯現。
+- Flink 可能為「查詢唯一鍵比 sink PK 更細」多加補償 state(推斷, 沒有實測)。
+- ClickHouse `ReplacingMergeTree ORDER BY (window_start, client)`(`init.sql:129`)用兩欄當身分,與正確的 PK 一致,這也是「PK = `GROUP BY` 欄位 + `window_start`」規則的原因。
+
+第 4 課盲點:想到「key 變粗會合併」,但把合併發生的位置想成 Flink 運算,其實在 Kafka 的 key 上;以及把「Flink 定義同一列」和「Kafka 是否真的刪舊資料」混成一件事。
 
 ---
 
