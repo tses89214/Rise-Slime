@@ -1007,4 +1007,6 @@ slime.events            真正存資料的表
 
 ## 已知問題
 
+(已處理:collector 現在把 `client=browser` 且 `event_time` 與收件時間差超過 10 分鐘的事件送進 DLQ,見 `clock_error()`。以下是處理前的描述;bot 仍不檢查。)
+
 `event_time` 和 `sent_at` 都來自 client 時鐘(`src/events/emitter.ts`),collector 只檢查 schema,不檢查時間(`collector/main.py` 的 `route()`)。Flink watermark = 最大 `event_time` 減 10 秒。一個時鐘快一小時的瀏覽器,會把 watermark 推到未來,其他玩家的事件超過 15 分鐘 allowed lateness 後被視窗默默丟掉,不進 DLQ,也不出現在 `late_1m`(它也用 client 的 `sent_at`)。這是靜態讀碼的推論,尚未實測。

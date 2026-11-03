@@ -34,9 +34,21 @@ def validate(raw) -> str | None:
     return "; ".join(f"{'.'.join(map(str, e.absolute_path))}: {e.message}" for e in v.iter_errors(raw)) or None
 
 
+BROWSER_SKEW_MS = 10 * 60 * 1000  # a browser reports real time, so a bigger gap is a wrong clock
+
+
+def clock_error(raw, now_ms: float) -> str | None:
+    """Browser clocks are untrusted: a fast one pushes Flink's watermark ahead and other players' events get dropped.
+    Bots are exempt: fast-forward and offline buffering legitimately stamp event_time far from ingestion."""
+    if raw["client"] != "browser":
+        return None
+    t = datetime.fromisoformat(raw["event_time"]).timestamp() * 1000
+    return f"event_time: {_iso(t)} is more than 10 min from collector time" if abs(t - now_ms) > BROWSER_SKEW_MS else None
+
+
 def route(raw, now_ms: float) -> dict:
     """Valid events go to `events`; anything else goes to the dead-letter topic with raw payload and reason."""
-    error = validate(raw)
+    error = validate(raw) or clock_error(raw, now_ms)
     if error is None:
         return {"topic": "events", "key": raw["player_id"], "value": {**raw, "ingested_at": _iso(now_ms)}}
     return {"topic": "events.dlq", "key": None, "value": {"raw": raw, "error": error, "ingested_at": _iso(now_ms)}}

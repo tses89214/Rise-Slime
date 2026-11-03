@@ -22,6 +22,16 @@ def test_sender_ingested_at_is_overwritten():
     assert r["value"]["ingested_at"] == "2026-11-02T08:00:00.000Z"
 
 
+def test_browser_with_fast_clock_is_dead_lettered_so_it_cannot_move_the_watermark():
+    r = route({**valid, "event_time": "2026-11-02T09:00:00.000Z"}, NOW)
+    assert r["topic"] == "events.dlq" and "event_time" in r["value"]["error"]
+
+
+def test_bot_far_from_ingestion_is_accepted_fast_forward_and_buffering_are_legit():
+    r = route({**valid, "client": "bot", "bot_persona": "optimizer", "event_time": "2026-11-02T15:00:00.000Z"}, NOW)
+    assert r["topic"] == "events"
+
+
 def test_every_event_a_bot_can_produce_is_accepted():
     with tempfile.NamedTemporaryFile(suffix=".jsonl") as f:
         subprocess.run(["npx", "tsx", "src/bots/run.ts", "--bots", "4", "--seconds", "600", "--out", f.name,
