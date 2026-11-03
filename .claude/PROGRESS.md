@@ -22,7 +22,13 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 使用者要求把整條數據鏈路教到沒有問題為止。教材與進度都在 `docs/learning.md`(開頭有「學習進度」表,下次從那裡接)。做法:一課一課教、每課附練習題、逐題檢討、教完寫進該檔。本次沒有改程式,只改文件:`docs/learning.md`(新)、`docs/pipeline.md` 的 tables 圖加上處理線編號、`docs/pipeline-tables.png` 重畫(版面變成直向,用預設 mermaid 設定,舊的橫向設定找不到)。
 已完成:第 1–6 課(含各課練習題檢討),課程講完。使用者決定不實測第 6 課與第 5 課第 2 題的推論(結論保持「未實測」標記)。已在 collector 加檢查:`client=browser` 的 `event_time` 與收件時間差超過 10 分鐘進 DLQ(bot 豁免,因 fast-forward / 斷線暫存合法);2 個 pytest(17 通過)。尚未驗證:10 分鐘對休眠分頁的真實瀏覽器是否太緊;`client` 欄位可偽造。
 
-## Next
+## TODO(下一步:收尾與發表,2026-11-03 決定)
+- [ ] 寫 Medium 文章(引流用精簡版;素材:`docs/pipeline.md` 圖、`docs/learning.md`、M3 的 E2E 對帳數字、儀表板截圖)
+- [ ] 更新履歷:加 Rise & Slime(Kafka / Flink / ClickHouse 即時管線,去重、遲到事件、DLQ、schema 演進)
+- [ ] 更新個人網站:專案頁 + Medium 連結 + repo 連結
+- [ ] 發表前檢查:README 能讓陌生人跑起來、`CREDITS.md` 完整、itch.io 版 build 通過、遊戲英文名撞名確認
+
+## Next (之後再說)
 1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site. **暫緩 (2026-11-03)**: 使用者決定先停在 M3,M4 設計留在 docs/design.md 不動,要開再重新評估範圍。
 2. Dashboard: time-range picker; per-schema-version panel.
 
