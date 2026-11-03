@@ -1,6 +1,6 @@
 ---
 name: project-rise-slime-state
-description: Current state of the Rise & Slime repo (M1-M3 done, next M4; art pivot to original sprites)
+description: Current state of the Rise & Slime repo (M1-M3 done, next M4; learning lessons 1-6 done; art pivot to original sprites)
 metadata:
   type: project
 ---
@@ -22,3 +22,6 @@ Later (2026-10-29, evening): game finished. Kafka path verified (2-node compose,
 
 Later (2026-10-30): M2 and M3 done and verified end to end. M3 = merge/mutation/slots, schema v2, Flink dedup + allowed-lateness upserts (ClickHouse tables are ReplacingMergeTree(version), read with FINAL), `late_1m`, bot disconnects, savepoint restart (`scripts/flink-restart.sh`). Dashboard is on port 3000 (`/dashboard`, served by the collector). User wants docs kept current (`docs/system.md` inventory, `docs/pipeline.md` colour-coded diagrams) and checks the dashboard visually. Next: M4. Known limit: back-to-back `--speed` bot runs drop the next run's first minutes (event time ahead of wall clock).
 
+
+
+Later (2026-11-03): learning lessons 1-6 (Kafka, Collector, Flink, job.sql, ClickHouse, client clock) all taught and written to `docs/learning.md`. Collector now dead-letters browser events >10 min off collector time. Docker was off; nothing re-run live. Next: M4.
