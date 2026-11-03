@@ -13,7 +13,7 @@
 | 第 3 課 Flink:state、changelog | 完成 |
 | 第 4 課 `job.sql` 逐段讀 | 完成(練習題 1–4 檢討完畢) |
 | 第 5 課 ClickHouse | 完成(練習題 1–5 檢討完畢) |
-| 第 6 課 問題:client 時鐘與 watermark | 未講(結論已在文末「已知問題」,未實測) |
+| 第 6 課 問題:client 時鐘與 watermark | 完成(練習題 1–3 檢討完畢;靜態讀碼,未實測) |
 | 練習題 1–9 | 已作答;**檢討完畢**(含 Flink 停機延伸題) |
 
 練習題中還不穩的地方(下次檢討重點):
@@ -950,6 +950,61 @@ slime.events            真正存資料的表
 
 ---
 
-## 已知問題(第 6 課會展開)
+## 第 6 課:client 時鐘怎麼弄壞 watermark
+
+全部是靜態讀碼(`job.sql`、`src/events/emitter.ts`、`collector/main.py:41`),**未實測**。
+
+### 前提
+
+1. `event_time`、`sent_at` 由 client 填(`emit(type, now, …)` 的 `now` 是呼叫端傳的)。
+2. `ingested_at` 由 collector 填(伺服器時鐘),是唯一可信的時鐘。
+3. Flink watermark = 看過的最大 `event_time` 減 10 秒,只增不減。
+
+### 劇情
+
+玩家 B 時鐘快 1 小時,送一筆 `event_time = 現在 + 1h`:watermark 跳到未來 → `window_end + 15 min` 小於它的視窗被清掉 → 玩家 A 正常的事件屬於已清掉的視窗 → **被丟掉**。不進 DLQ(格式合法),`late_1m` 也看不到。`events` 表仍完整,所以事後可用 `events FINAL` 對帳發現。
+
+| 機制 | 單看合理的原因 |
+| --- | --- |
+| collector 只驗 schema | 驗時間要定義「合理範圍」,是額外規則 |
+| watermark 取最大值 | event time 的定義,不能倒退 |
+| 超過 lateness 丟棄 | 否則 state 永遠清不掉 |
+
+三個各自合理,疊起來才靜默出錯。
+
+### 方向不對稱
+
+| 時鐘 | 傷到誰 |
+| --- | --- |
+| 調快 | 其他所有玩家(全域) |
+| 調慢 | 只有自己:`event_time` 落後 watermark 超過 15 分鐘,B 的事件進不了視窗,只留在 `events` |
+
+### `late_1m` 為什麼看不到
+
+`late = sent_at − event_time`,兩個都是 client 時鐘。B 的兩個欄位同樣快 1 小時,相減 ≈ 0;受害者 A 的也 ≈ 0。**錯誤互相抵銷**,`late_1m` 回報沒遲到。盲點:它量的是「client 自己覺得多晚送」,不是「相對伺服器多晚到」。唯一現成線索是 `pipeline_1m` 的 `latency_ms = ingested_at − event_time`,B 會是約 −3,600,000,但沒人在看(推論,沒查儀表板程式)。
+
+### 解法比較
+
+| 方案 | 做法 | 代價 |
+| --- | --- | --- |
+| A. collector 檢查 | `abs(event_time − ingested_at)` 超範圍進 DLQ | 範圍難定:fast-forward / 斷線暫存 bot 合法地差很多 |
+| B. 視窗改用 `ingested_at` | 時鐘換伺服器的 | 失去遊戲內時間語意,fast-forward 調數值失去意義 |
+| C. 只加監控 | 比對 `events` 與 `*_1m` | 能發現不能防 |
+
+建議(我的判斷,沒實測):方案 A,**只對 `client = browser` 套用**,範圍小(例如 ±10 分鐘)。不可信的是瀏覽器,不是自家 bot。`--speed 60` 下現實 1 分鐘 = 遊戲 1 小時,全部 client 套 ±1h 會讓 10 分鐘 run 的約 9/10 事件進 DLQ。漏洞:`client` 欄位也是 client 填的,送 `client = bot` 可繞過;對外開放要改認證或驗簽。未驗證:±10 分鐘對休眠分頁的真實瀏覽器是否太緊。
+
+### 練習題與檢討(第 6 課)
+
+**第 1 題**(B 調慢 1 小時,傷害別人嗎?B 自己呢):答「不會,B 的事件被丟棄」,**對**。補:`late_1m` 裡 B 的事件同樣被丟(`sent_at` 也慢,推論)。調快才是危險的那種。
+
+**第 2 題**(`late_1m` 為何抓不到):答「相信 client 的 `event_time`」,**對,可再往前一步**:它連 `sent_at` 也信,兩者用同一個壞時鐘,相減抵銷。
+
+**第 3 題**(方案 A 範圍怎麼定):答不知道,講解後補上。關鍵觀念:區分可信度,在**不可信的邊界**檢查,不要一刀切。
+
+第 6 課盲點:還沒養成「這個欄位是誰填的」的直覺。判斷一個欄位能不能信,先問誰寫的。
+
+---
+
+## 已知問題
 
 `event_time` 和 `sent_at` 都來自 client 時鐘(`src/events/emitter.ts`),collector 只檢查 schema,不檢查時間(`collector/main.py` 的 `route()`)。Flink watermark = 最大 `event_time` 減 10 秒。一個時鐘快一小時的瀏覽器,會把 watermark 推到未來,其他玩家的事件超過 15 分鐘 allowed lateness 後被視窗默默丟掉,不進 DLQ,也不出現在 `late_1m`(它也用 client 的 `sent_at`)。這是靜態讀碼的推論,尚未實測。
