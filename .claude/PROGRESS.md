@@ -20,7 +20,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 
 ## 學習模式(使用者學 Kafka / Flink / ClickHouse)
 使用者要求把整條數據鏈路教到沒有問題為止。教材與進度都在 `docs/learning.md`(開頭有「學習進度」表,下次從那裡接)。做法:一課一課教、每課附練習題、逐題檢討、教完寫進該檔。本次沒有改程式,只改文件:`docs/learning.md`(新)、`docs/pipeline.md` 的 tables 圖加上處理線編號、`docs/pipeline-tables.png` 重畫(版面變成直向,用預設 mermaid 設定,舊的橫向設定找不到)。
-已完成:第 1–6 課(含各課練習題檢討),課程講完。可選後續:開 Docker 實測 (a) 調快時鐘的事件是否真的讓其他玩家事件被視窗丟掉,(b) ClickHouse 24.8 直接 SELECT Kafka engine 表是報錯還是吃訊息;再決定是否在 collector 對 `client=browser` 加 `event_time` 範圍檢查(建議 ±10 分鐘,見 learning.md 第 6 課)。
+已完成:第 1–6 課(含各課練習題檢討),課程講完。使用者決定不實測第 6 課與第 5 課第 2 題的推論(結論保持「未實測」標記)。是否在 collector 對 `client=browser` 加 `event_time` 範圍檢查(建議 ±10 分鐘,見 learning.md 第 6 課)留待之後決定。
 
 ## Next
 1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site.
