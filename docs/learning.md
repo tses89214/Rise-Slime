@@ -12,7 +12,7 @@
 | 第 3 課 Flink:table、watermark、window | 完成 |
 | 第 3 課 Flink:state、changelog | 完成 |
 | 第 4 課 `job.sql` 逐段讀 | 完成(練習題 1–4 檢討完畢) |
-| 第 5 課 ClickHouse | 未講 |
+| 第 5 課 ClickHouse | 完成(練習題 1–5 檢討完畢) |
 | 第 6 課 問題:client 時鐘與 watermark | 未講(結論已在文末「已知問題」,未實測) |
 | 練習題 1–9 | 已作答;**檢討完畢**(含 Flink 停機延伸題) |
 
@@ -873,6 +873,80 @@ GROUP BY HOP(event_time, INTERVAL '1' MINUTE, INTERVAL '10' MINUTE)   -- 滑動�
 - ClickHouse `ReplacingMergeTree ORDER BY (window_start, client)`(`init.sql:129`)用兩欄當身分,與正確的 PK 一致,這也是「PK = `GROUP BY` 欄位 + `window_start`」規則的原因。
 
 第 4 課盲點:想到「key 變粗會合併」,但把合併發生的位置想成 Flink 運算,其實在 Kafka 的 key 上;以及把「Flink 定義同一列」和「Kafka 是否真的刪舊資料」混成一件事。
+
+---
+
+## 第 5 課:ClickHouse
+
+來源:`pipeline/clickhouse/init.sql`、`docker-compose.yml`(ClickHouse 24.8)。
+
+### MergeTree
+
+欄式儲存。一次寫入 = 磁碟上一個 **part**(依 `ORDER BY` 排序),背景把小 part **merge** 成大的。
+
+- `ORDER BY` 是排序鍵 + 稀疏索引,**不是唯一鍵**,重複的鍵照樣存在。要照常用的篩選條件選。
+- 沒有 UPDATE / row lock。「改資料」靠 merge 時的規則(Replacing、Aggregating)。
+
+### Replacing 與 `FINAL`
+
+`ReplacingMergeTree(version)`:merge 時,**排序鍵相同**的列只留 `version` 最大的一列。merge 在背景、時間不定,所以 merge 前新舊列同時存在:
+
+- 不加 `FINAL`:全部讀到,`sum()` 重複加總。
+- 加 `FINAL`:查詢時當場去重,正確但較慢。
+
+`*_1m` 的 `produced` 是視窗**累計值**(不是增量),`version` = 視窗事件數只增不減,所以「version 最大」= 最新累計。三列 100 / 160 / 230 不加 `FINAL` 得 490(錯),加了得 230。
+
+`events` 的 Replacing 沒有 version 參數:排序鍵 `(event_type, event_time, event_id)` 完全相同即重複,留哪列都行。
+
+### Kafka engine + MV 三件組
+
+```
+Kafka topic ch.events
+   ▼  consumer group: clickhouse-events
+slime.kafka_events      ENGINE = Kafka,不存資料,只是 consumer
+   ▼  MV 讀它時 offset 才前進
+slime.kafka_events_mv   MATERIALIZED VIEW ... TO slime.events,搬運 + 轉型
+   ▼
+slime.events            真正存資料的表
+```
+
+- MV 在這裡是**插入觸發器**,不是預先算好的查詢結果。
+- Kafka 表時間欄位用 `String`,MV 裡才 `parseDateTime64BestEffort`,Flink 和 ClickHouse 不必約定時間格式。
+- offset 記在 Kafka(consumer group),ClickHouse 重啟不重讀。刪 topic 或改 sink 後 consumer 會卡住,要重建表 + MV 並重設 offset。
+- `dead_letters` 最短:`events.dlq` → Kafka engine → MV → MergeTree,不經 Flink。
+
+### AggregatingMergeTree 與 `player_state`
+
+目標:每玩家一列最新狀態。MV 在 `events` 每進一列就產生一列**部分狀態**;merge 時同 `player_id` 按各欄聚合函數合併。
+
+- `argMax(a, b)` = 「`b` 最大那列的 `a`」。`argMax(coins, event_time)` = 最新那筆的 coins。不是 `max(coins)`(coins 會跌)。
+- `AggregateFunction(argMax, ...)` 存中間狀態:寫入用 `argMaxState`,讀取用 `argMaxMerge`。`SimpleAggregateFunction(min/max)` 狀態即結果,不需要 `-State/-Merge`。
+- `leaderboard` view 要 `GROUP BY player_id` + `argMaxMerge`:merge 前同玩家可能有多列,查詢時當場合併(和 `FINAL` 同理,手動做)。
+- 不用 Replacing 的原因:(1) Replacing 整列取代,別種事件(沒有 coins)會蓋掉欄位;`argMaxStateIf(..., event_type = 'production_tick')` 讓每欄自己挑來源。(2) 晚到舊 tick 在 `argMax` 輸給較新的,不改結果;「後寫入取代先寫入」會讓 coins 倒退。
+- 都選**冪等且與順序無關**的聚合:`min`、`max`、`argMax`。重複、亂序到達結果一樣。
+
+### 對照
+
+| 引擎 | merge 時 | 讀的時候 | 本專案 |
+| --- | --- | --- | --- |
+| `MergeTree` | 只合併 part | 直接讀 | `dead_letters` |
+| `ReplacingMergeTree(v)` | 同鍵留 `v` 最大 | `FINAL` | `events`、`*_1m` |
+| `AggregatingMergeTree` | 同鍵按欄位函數合併 | `GROUP BY` + `-Merge` | `player_state` |
+| `Kafka` | 不存資料 | 不要直接查 | 所有 `kafka_*` |
+
+### 練習題與檢討(第 5 課)
+
+**第 1 題**(version 5/8/12 三列未 merge,`sum` 有無 `FINAL`):答 3 列 vs 1 列,**對**。補充:累計值相加才是錯誤來源。
+
+**第 2 題**(直接 `SELECT kafka_events`):答「會 consume 掉」,**對一半**。缺:讀走的訊息**沒經過 MV**,不會進 `slime.events`,offset 已前進,`events` 永久少了這批(Kafka 裡還在);補救要重設 consumer group offset 重讀,重複由 Replacing 吸收。**未實測**:24.8 可能預設禁止直接 SELECT(`stream_like_engine_allow_direct_select`),屆時是報錯而非吃訊息。看 Kafka 內容用 Kafka UI。
+
+**第 3 題**(Flink 去重後 `events` 為何還用 Replacing):答「保留所有 events、可回放重送」,**對**。補充:(1) Flink 去重 state 只留 1 小時,超過的重複、或 `job.sql` 重送重讀 Kafka,仍會進來,Replacing 是最後防線;(2) `events` 是事實來源,沒有 15 分鐘 lateness 限制,對帳用 `events FINAL`;(3) 新聚合可從 `events` 回填。
+
+**第 4 題**(`player_state` 為何不用 Replacing):原本不知道 `argMax`,講解後補上。要點見上節。小檢查:tick `10:00→100`、`10:05→340`、`10:03→280` 任何順序到達,結果都是 340。
+
+**第 5 題**(改 `init.sql` 加欄,已在跑的 ClickHouse 會生效嗎):答不知道。**不會**:`docker-entrypoint-initdb.d` 只在資料目錄為空時的首次啟動執行。兩條路:`down` + 刪 `clickhouse-data` volume 重來(資料全沒,靠重放 Kafka 回填),或手動 `ALTER TABLE`(資料保留,但 `init.sql` 要同步)。Kafka engine 表和 MV 不能隨便 ALTER,通常 DROP 重建並處理 offset。觀念:`init.sql` 是「首次建立」腳本,不是 migration。
+
+第 5 課盲點:對「讀 Kafka engine 表」只看到 offset,沒想到資料沒進目標表;對「啟動時載入 / 只執行一次」的東西(`event.schema.json`、`init.sql`、Flink job 定義)仍不熟。
 
 ---
 
