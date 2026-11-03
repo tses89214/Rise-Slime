@@ -23,7 +23,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 已完成:第 1–6 課(含各課練習題檢討),課程講完。使用者決定不實測第 6 課與第 5 課第 2 題的推論(結論保持「未實測」標記)。已在 collector 加檢查:`client=browser` 的 `event_time` 與收件時間差超過 10 分鐘進 DLQ(bot 豁免,因 fast-forward / 斷線暫存合法);2 個 pytest(17 通過)。尚未驗證:10 分鐘對休眠分頁的真實瀏覽器是否太緊;`client` 欄位可偽造。
 
 ## Next
-1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site.
+1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site. **暫緩 (2026-11-03)**: 使用者決定先停在 M3,M4 設計留在 docs/design.md 不動,要開再重新評估範圍。
 2. Dashboard: time-range picker; per-schema-version panel.
 
 ## Open / not verified
