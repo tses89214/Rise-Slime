@@ -25,6 +25,7 @@ Needs Docker, [uv](https://docs.astral.sh/uv/) and Node 20+. Give Docker ~6 GB R
 ```
 npm install
 docker compose up -d                                   # Kafka x2, Kafka UI :8080, ClickHouse :8123, Flink :8081
+for t in events events.dlq; do docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic $t --replication-factor 2; done   # first start only: Flink needs these to exist
 docker compose --profile submit run --rm flink-sql     # submit the Flink job (once)
 KAFKA_BROKERS=localhost:9092 npm run collector         # collector + dashboard on :3000
 npm run bots -- --bots 20 --seconds 600 --speed 60 --url http://localhost:3000/events

@@ -24,6 +24,7 @@
 ```sh
 npm install
 docker compose up -d                                   # Kafka x2, Kafka UI, ClickHouse, Flink
+for t in events events.dlq; do docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic $t --replication-factor 2; done   # 全新的 volume 要先建這兩個 topic
 docker compose --profile submit run --rm flink-sql     # 提交 Flink job（只在第一次；之後用 scripts/flink-restart.sh）
 KAFKA_BROKERS=localhost:9092 npm run collector         # 另開終端機
 npm run bots -- --bots 20 --seconds 1200 --speed 60 --url http://localhost:3000/events
@@ -32,6 +33,7 @@ open http://localhost:3000/dashboard
 
 - `--speed 60`：虛擬時間快 60 倍（20 分鐘的遊戲約 20 秒跑完）。沒給就是快轉模式，跑最快。
 - 想玩遊戲本身：`npm run dev`；要把真人的事件也送進管線：`VITE_TELEMETRY=true npm run dev`。
+- 為什麼要先建 topic：`down -v` 之後 `events` 還不存在（要等 collector 第一次寫入才會自動建立），Flink job 讀不到會一直 RESTARTING。這是 2026-11-04 從零重跑時遇到的；建好 topic 後 job 就恢復 RUNNING。
 - 全部清掉重來：`docker compose down -v`（資料也會刪）。`init.sql` 只在 ClickHouse 第一次啟動時執行。
 - 改了 `job.sql`：`scripts/flink-restart.sh`（用 savepoint 接著跑，不重放 Kafka）。
 
