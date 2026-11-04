@@ -1,5 +1,5 @@
 import { checkAchievements } from '../core/achievements';
-import { assignOne, buySlime, checkFeatures, count, expand, expandCost, merge, newState, rng, slimeCost, STATIONS, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
+import { assignOne, buySlime, canMerge, checkFeatures, count, expand, expandCost, merge, newState, rng, slimeCost, STATIONS, step, takeWindow, upgrade, upgradeCost, type State, type StationId } from '../core/sim';
 import { makeEmitter } from '../events/emitter';
 import type { GameEvent } from '../events/schema';
 
@@ -51,10 +51,11 @@ export async function runBot(o: BotOpts) {
       }
     };
     assignLounge();
-    if (count(s, null) > 0 && !room().length) {
-      // expand the first full station if the optimizer finds it cheaper than a slime, else merge
-      const cost = expandCost(s, STATIONS[0]);
-      const e = o.persona === 'optimizer' && s.features.includes('expansion') && cost <= slimeCost(s) * 1.5 ? expand(s, STATIONS[0]) : null;
+    if (count(s, null) >= 3 && !room().length) { // merging needs 3 waiting in the lounge, so let them pile up first
+      // expand the neediest full station if the optimizer finds it cheaper than a slime, else merge
+      const full = STATIONS.reduce((a, b) => (count(s, a) / IDEAL[a] <= count(s, b) / IDEAL[b] ? a : b)); // the station furthest below its ideal share
+      const cost = expandCost(s, full);
+      const e = o.persona === 'optimizer' && !canMerge(s) && s.features.includes('expansion') && cost <= slimeCost(s) * 1.5 ? expand(s, full) : null;
       if (e) emit('station_expanded', now, { station: e.station, new_slots: e.slots, cost, coins_after: s.coins });
       for (let m = e ? null : merge(s, rand); m; m = null) {
         emit('slime_merged', now, { slime_id: m.slime.id, material_ids: m.materials, new_tier: m.slime.tier, trait: m.slime.trait, mutated: m.mutated, mutation_chance: m.chance });

@@ -133,15 +133,14 @@ export function checkFeatures(s: State): string[] {
   return fresh;
 }
 
-// Merge the first MERGE_SIZE slimes of the lowest tier that has enough (lounge first, so working slimes stay put).
+// Merge the first MERGE_SIZE lounge slimes of the lowest tier that has enough (working slimes are never touched).
 // The result waits in the lounge. Trait: the mutation roll (chance doubles with a lucky ingredient) gives a random trait;
 // otherwise inherited from a random ingredient that has one. `mutated` = the roll succeeded.
 const mergeTier = (pool: Slime[]) => pool.find((x) => pool.filter((y) => y.tier === x.tier).length >= MERGE_SIZE)?.tier;
-export const canMerge = (s: State) => s.features.includes('merge') && mergeTier([...s.slimes].sort((a, b) => a.tier - b.tier)) !== undefined;
+export const canMerge = (s: State) => s.features.includes('merge') && mergeTier(s.slimes.filter((x) => x.station === null)) !== undefined;
 export function merge(s: State, rand: () => number) {
   if (!s.features.includes('merge')) return null;
-  const order = (x: Slime) => (x.station === null ? 0 : 1);
-  const pool = [...s.slimes].sort((a, b) => a.tier - b.tier || order(a) - order(b));
+  const pool = s.slimes.filter((x) => x.station === null).sort((a, b) => a.tier - b.tier);
   const tier = mergeTier(pool);
   if (tier === undefined) return null;
   const mats = pool.filter((x) => x.tier === tier).slice(0, MERGE_SIZE);
