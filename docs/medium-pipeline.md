@@ -1,7 +1,7 @@
 <!--
 給其他 bot 的說明(發表前刪除這段):
 - 第 2 篇:介紹資料工程管線。讀者是資料工程師。第 1 篇介紹遊戲(docs/medium-game.md),這篇只簡述遊戲。zh-TW,技術名詞保留英文。不寫除錯過程、踩坑細節、時間與具體數字。
-- 圖檔:itch-media/shot1-main.png(遊戲畫面,demo 狀態)、docs/pipeline-services.png、docs/pipeline-tables.png;儀表板截圖待補。
+- 圖檔:itch-media/shot1-main.png(遊戲畫面,demo 狀態)、docs/pipeline-services.png、docs/pipeline-tables.png;itch-media/dashboard.png(儀表板,bots 資料,2026-11-04 拍攝)。
 - 待確認:文中「對帳都吻合」是 2026-11-04 清資料後單次跑(20 bots × 600 s)的結果,合成與擴充樣本小、遲到事件路徑那輪沒觸發,所以文章只說「已輸出的視窗」。
 - 遊戲名撞名只查過網路搜尋,未查 itch.io / Steam 站內搜尋。
 - Repo:https://github.com/tses89214/Rise-Slime  試玩:https://tses89214.itch.io/rise-slime
@@ -54,7 +54,9 @@ ClickHouse(ReplacingMergeTree)
 
 儀表板「看起來合理」不算數。我拿 ClickHouse 的原始事件表逐分鐘對帳 Flink 算出來的視窗(事件數、麵包銷售量、各站產量),已輸出的視窗都吻合。
 
-[待補:儀表板截圖]
+![儀表板](../itch-media/dashboard.png)
+
+儀表板顯示的是模擬玩家(bots)產生的資料:各站產量與佇列、玩家活動、遲到事件、管線延遲,以及最近的 dead letters。
 
 ## 試試看
 
