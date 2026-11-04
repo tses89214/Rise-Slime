@@ -106,6 +106,16 @@ describe('personas differ', () => {
   });
 });
 
+describe('bot temperament', () => {
+  test('same persona, different seeds: the leaderboard is not a row of identical players', async () => {
+    const ends = await Promise.all([1, 2, 3, 4, 5].map(async (seed) => {
+      const t = of(await play('optimizer', 600, seed), 'production_tick').at(-1)!;
+      return `${t.coins_balance}/${t.slimes_owned}`;
+    }));
+    expect(new Set(ends).size).toBeGreaterThanOrEqual(4);
+  });
+});
+
 describe('M3 events', () => {
   test('features unlock once each, before the first merge; merges eat three slimes the bot owned', async () => {
     const events = await play('optimizer', 1200);

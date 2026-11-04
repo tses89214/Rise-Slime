@@ -10,6 +10,10 @@ export interface BotOpts { id: string; persona: Persona; seed: number; startMs: 
 
 export async function runBot(o: BotOpts) {
   const rand = rng(o.seed);
+  // each bot has its own temperament (separate stream, so the gameplay rolls above stay unchanged): how often it checks in, how patient it is
+  const temper = rng(o.seed * 7919 + 1);
+  const attention = 0.4 + 0.6 * temper(); // chance to act in a given second
+  const greed = 1 + 1.5 * temper(); // optimizer buys/expands while a slime/expansion costs <= greed x the cheapest upgrade/slime
   const s: State = newState();
   const emit = makeEmitter({ game_version: '0.1.0', player_id: o.id, session_id: `s-${o.seed.toString(16)}`, client: 'bot', bot_persona: o.persona }, (e) => void o.sink(e));
   const at = (t: number) => o.startMs + t * 1000;
@@ -31,10 +35,11 @@ export async function runBot(o: BotOpts) {
   emit('session_end', at(seconds), { session_seconds: seconds, reason: 'bot_stop' });
 
   function act(t: number) {
+    if (temper() > attention) return;
     const now = at(t);
-    // the optimizer only buys slimes while they cost no more than 1.5x the cheapest upgrade; the others buy whenever they can
+    // the optimizer only buys slimes while they cost no more than `greed` x the cheapest upgrade; the others buy whenever they can
     const cheapUpgrade = Math.min(...STATIONS.map((i) => upgradeCost(s, i)));
-    if (o.persona !== 'optimizer' || slimeCost(s) <= cheapUpgrade * 1.5) {
+    if (o.persona !== 'optimizer' || slimeCost(s) <= cheapUpgrade * greed) {
       const cost = slimeCost(s);
       const slime = buySlime(s);
       if (slime) emit('slime_purchased', now, { slime_id: slime.id, cost, total_purchased: s.totalPurchased, coins_after: s.coins });
@@ -55,7 +60,7 @@ export async function runBot(o: BotOpts) {
       // expand the neediest full station if the optimizer finds it cheaper than a slime, else merge
       const full = STATIONS.reduce((a, b) => (count(s, a) / IDEAL[a] <= count(s, b) / IDEAL[b] ? a : b)); // the station furthest below its ideal share
       const cost = expandCost(s, full);
-      const e = o.persona === 'optimizer' && !canMerge(s) && s.features.includes('expansion') && cost <= slimeCost(s) * 1.5 ? expand(s, full) : null;
+      const e = o.persona === 'optimizer' && !canMerge(s) && s.features.includes('expansion') && cost <= slimeCost(s) * greed ? expand(s, full) : null;
       if (e) emit('station_expanded', now, { station: e.station, new_slots: e.slots, cost, coins_after: s.coins });
       for (let m = e ? null : merge(s, rand); m; m = null) {
         emit('slime_merged', now, { slime_id: m.slime.id, material_ids: m.materials, new_tier: m.slime.tier, trait: m.slime.trait, mutated: m.mutated, mutation_chance: m.chance });
