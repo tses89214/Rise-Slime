@@ -134,8 +134,8 @@ export function checkFeatures(s: State): string[] {
 }
 
 // Merge the first MERGE_SIZE slimes of the lowest tier that has enough (lounge first, so working slimes stay put).
-// The result waits in the lounge. Trait: inherited from a random ingredient that has one; otherwise the mutation roll
-// (chance doubles with a lucky ingredient) may give a random trait. `mutated` = a brand-new trait appeared.
+// The result waits in the lounge. Trait: the mutation roll (chance doubles with a lucky ingredient) gives a random trait;
+// otherwise inherited from a random ingredient that has one. `mutated` = the roll succeeded.
 const mergeTier = (pool: Slime[]) => pool.find((x) => pool.filter((y) => y.tier === x.tier).length >= MERGE_SIZE)?.tier;
 export const canMerge = (s: State) => s.features.includes('merge') && mergeTier([...s.slimes].sort((a, b) => a.tier - b.tier)) !== undefined;
 export function merge(s: State, rand: () => number) {
@@ -148,11 +148,11 @@ export function merge(s: State, rand: () => number) {
   const chance = MUTATION_CHANCE * (mats.some((x) => x.trait === 'lucky') ? 2 : 1);
   const roll = rand() < chance;
   const held = mats.map((x) => x.trait).filter((t): t is Trait => t !== null);
-  const trait = held.length ? held[Math.floor(rand() * held.length)] : roll ? TRAITS[Math.floor(rand() * TRAITS.length)] : null;
+  const trait = roll ? TRAITS[Math.floor(rand() * TRAITS.length)] : held.length ? held[Math.floor(rand() * held.length)] : null;
   s.slimes = s.slimes.filter((x) => !mats.includes(x));
   const slime: Slime = { id: `slime-m${++s.totalMerged}`, station: null, tier: tier + 1, trait };
   s.slimes.push(slime);
-  return { slime, materials: mats.map((x) => x.id), chance, mutated: roll && held.length === 0 };
+  return { slime, materials: mats.map((x) => x.id), chance, mutated: roll };
 }
 
 // ponytail: cycles resolve in chain order within one dt; keep dt small (<=0.1s) for accuracy.

@@ -384,6 +384,10 @@ describe('M3: merging', () => {
     const run = (seed: number) => { const r = rng(seed); return Array.from({ length: 50 }, () => merge(lounge(3), r)!.mutated); };
     expect(run(7)).toEqual(run(7));
   });
+  test('a lucky ingredient really doubles the mutation chance: a 7% roll mutates with it, not without', () => {
+    expect(merge(lounge(3, 1, 'lucky'), () => 0.07)!.mutated).toBe(true);
+    expect(merge(lounge(3), () => 0.07)!.mutated).toBe(false);
+  });
   test('about 5% of merges mutate over many seeded rolls', () => {
     const r = rng(3);
     const hits = Array.from({ length: 4000 }, () => merge(lounge(3), r)!.mutated).filter(Boolean).length;
