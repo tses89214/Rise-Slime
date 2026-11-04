@@ -6,7 +6,7 @@ _Last updated: 2026-11-04 (clocked out: published to itch.io, two Medium drafts 
 - Game live: https://tses89214.itch.io/rise-slime. Merge is Lounge-only; lucky trait doubles mutation chance (5%→10%); "Backing up"→"Piling up"; bots have temperament (attention/greed) so leaderboard rows differ; dashboard column renamed `station lvls`; demo mode starts with 100 coins (dev only).
 - Docs: README rewritten, topic-creation startup step added (README + system.md). `docs/medium-game.md` + `docs/medium-pipeline.md` drafted (zh-TW, `[待補:第 1/2 篇網址]` placeholders, delete the HTML helper comments before publishing). Screenshots in `itch-media/`.
 - Clean E2E rerun: 10 windows reconciled, 0 mismatches. Local stack stopped (`down`, volumes kept; Flink job must be resubmitted).
-- Left: publish 2 posts + fill cross-links, resume, personal site, itch.io/Steam in-site name check.
+- Publishing TODOs (2 Medium posts, resume, personal site) all done per user. Project wrapped; M4 on hold.
 
 ## Status
 Collector rewritten in Python (FastAPI, `collector/main.py`); validates against `src/events/event.schema.json` exported from zod (`npm run schema`, vitest checks it is fresh). Tests: `npm test` 173 (not re-run 2026-11-03, no TS changes), `npm run test:collector` 17, typecheck and build pass. Verified end to end after the rewrite (full stack up, 10 bots real-time): collector -> Kafka -> Flink -> ClickHouse (2457 new events), DLQ rows arrive, `/api/dashboard` returns all 8 blocks. Not reconciled row for row. Stack was shut down with `down` (volumes kept). Dev-only 'ops dashboard' link at the game's bottom-left. Bots/core stay TS (Node is still needed for Vite, Vitest and bots). Next: M4.
@@ -29,9 +29,9 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 已完成:第 1–6 課(含各課練習題檢討),課程講完。使用者決定不實測第 6 課與第 5 課第 2 題的推論(結論保持「未實測」標記)。已在 collector 加檢查:`client=browser` 的 `event_time` 與收件時間差超過 10 分鐘進 DLQ(bot 豁免,因 fast-forward / 斷線暫存合法);2 個 pytest(17 通過)。尚未驗證:10 分鐘對休眠分頁的真實瀏覽器是否太緊;`client` 欄位可偽造。
 
 ## TODO(下一步:收尾與發表,2026-11-03 決定)
-- [ ] 寫 Medium 文章(引流用精簡版;素材:`docs/pipeline.md` 圖、`docs/learning.md`、M3 的 E2E 對帳數字、儀表板截圖)
-- [ ] 更新履歷:加 Rise & Slime(Kafka / Flink / ClickHouse 即時管線,去重、遲到事件、DLQ、schema 演進)
-- [ ] 更新個人網站:專案頁 + Medium 連結 + repo 連結
+- [x] 寫 Medium 文章(引流用精簡版;素材:`docs/pipeline.md` 圖、`docs/learning.md`、M3 的 E2E 對帳數字、儀表板截圖)
+- [x] 更新履歷:加 Rise & Slime(Kafka / Flink / ClickHouse 即時管線,去重、遲到事件、DLQ、schema 演進)
+- [x] 更新個人網站:專案頁 + Medium 連結 + repo 連結
 - [x] 發表前檢查(2026-11-04 完成):README 重寫、`CREDITS.md` 逐項核對、build 改相對路徑可在 itch 子路徑執行;itch.io 已上線 https://tses89214.itch.io/rise-slime(封面與截圖在 `itch-media/`);撞名只查過網路搜尋,站內搜尋未查
 
 ## Next (之後再說)
