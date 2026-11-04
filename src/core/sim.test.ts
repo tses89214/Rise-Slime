@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
-  applyOffline, assignOne, migrate, buySlime, checkFeatures, count, expand, expandCost, merge, newState, slimePower, START_SLOTS, OFFLINE_CAP_SECONDS, rng, slimeCost,
+  applyOffline, assignOne, canMerge, migrate, buySlime, checkFeatures, count, expand, expandCost, merge, newState, slimePower, START_SLOTS, OFFLINE_CAP_SECONDS, rng, slimeCost,
   speedMultiplier, State, STATIONS, step, takeWindow, upgrade, upgradeCost,
 } from './sim';
 
@@ -363,10 +363,14 @@ describe('M3: merging', () => {
     expect(s.slimes).toHaveLength(2); // 4 - 3 + 1
     expect(s.totalMerged).toBe(1);
   });
-  test('merges the lowest tier first and takes lounge slimes before working ones', () => {
+  test('merges the lowest tier first and only uses lounge slimes, so working slimes never vanish from a station', () => {
     const s = lounge(3, 2);
     s.slimes.push({ id: 'w1', station: 'farm', tier: 1, trait: null }, { id: 'w2', station: 'farm', tier: 1, trait: null }, { id: 'l1', station: null, tier: 1, trait: null }, { id: 'w3', station: 'mill', tier: 1, trait: null });
-    expect(merge(s, never)!.materials).toEqual(['l1', 'w1', 'w2']);
+    expect(merge(s, never)!.materials).toEqual(['t2-0', 't2-1', 't2-2']); // 3 tier-1 exist, but only 1 is in the lounge
+    expect(s.slimes.filter((x) => x.station !== null)).toHaveLength(3);
+    const busy = lounge(0);
+    for (let i = 0; i < 3; i++) busy.slimes.push({ id: `b${i}`, station: 'farm', tier: 1, trait: null });
+    expect(canMerge(busy)).toBe(false); // three working slimes are not enough
   });
   test('output: 3 -> 1 loses about 17% but frees two slots (why merging is a decision)', () => {
     expect(slimePower({ id: 'x', station: 'farm', tier: 2, trait: null }, 'farm') / 3).toBeCloseTo(2.5 / 3, 5);

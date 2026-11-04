@@ -4,7 +4,7 @@ Implemented in `src/core/sim.ts`; numbers stay provisional as in the spec.
 
 - **Unlocks** (`checkFeatures`, pure conditions on `State`, one `feature_unlocked` event each): `merge` after 6 lifetime purchases; `expansion` once any station holds 8 slimes. The spec gave no trigger.
 - **Slots**: 10 per station, `expand` adds 5 for `100 * 2^((slots-10)/5)` coins. Assigning to a full station fails.
-- **Merge** takes the lowest tier that has 3 slimes, lounge slimes first, and the result waits in the lounge (the freed slots are the point). Tier multiplier `2.5^(tier-1)`.
+- **Merge** takes the lowest tier that has 3 slimes, only lounge slimes (changed 2026-11-04: before, working slimes were used when the lounge was short, which silently pulled them off stations), and the result waits in the lounge (the freed slots are the point). Tier multiplier `2.5^(tier-1)`.
 - **Traits**: leaf/stone/flame give x1.5 at their station and x0.8 at one other; lucky has no station effect. The 5% roll (x2 with a lucky ingredient) gives the result a random trait; otherwise it inherits a random trait from an ingredient that has one. `slime_merged.mutated` means the roll succeeded (changed 2026-11-04: before, the roll only ran when no ingredient had a trait, so the lucky doubling never took effect); `mutation_chance` is logged because lucky slimes bias the observed rate (the spec warns about this confound).
 - **Pricing** already used lifetime purchases (`totalPurchased`), so merging cannot lower prices. A test pins this.
 - **Schema v2**: new events `slime_merged`, `station_expanded`, `feature_unlocked` (version 2 only) and optional `tier` / `trait` on `slime_assigned`. v1 events remain valid. The emitter now stamps 2.
