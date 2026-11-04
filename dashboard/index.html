@@ -115,7 +115,7 @@ function draw(id, rows, keys, by, colors, rightAxisFrom) {
 }
 
 function table(id, cols, rows) {
-  $(id).innerHTML = '<tr>' + cols.map((c) => `<th>${c[0]}</th>`).join('') + '</tr>' +
+  $(id).innerHTML = '<tr>' + cols.map((c) => `<th${c[2] ? ` title="${c[2]}"` : ''}>${c[0]}</th>`).join('') + '</tr>' +
     (rows.length ? rows.map((r) => '<tr>' + cols.map((c) => `<td>${c[1](r)}</td>`).join('') + '</tr>').join('') : `<tr><td colspan="${cols.length}" class="off">no data</td></tr>`);
 }
 
@@ -139,7 +139,7 @@ async function refresh() {
     draw('c-late', d.late, ['late', 'max_delay_s'], null, [COLORS.a, COLORS.b], 1);
     draw('c-pipe', d.pipeline, ['events', 'latency_ms'], null, [COLORS.a, COLORS.b], 1); // latency on the right axis
 
-    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['station lvls', (r) => n(r.levels)], ['ach.', (r) => r.achievements],
+    table('t-rich', [['player', (r) => r.player_id], ['coins', (r) => n(r.coins)], ['slimes', (r) => n(r.slimes)], ['station lvls', (r) => n(r.levels), 'Sum of the upgrade levels of farm, mill and bakery'], ['ach.', (r) => r.achievements],
       ['', (r) => `<span class="${r.online ? 'on' : 'off'}" title="${r.online ? 'online' : 'away'}">${r.online ? '●' : '○'}</span>`]], d.richest);
     table('t-eff', [['player', (r) => r.player_id], ['persona', (r) => r.persona ?? 'human'], ['coins/min', (r) => n(r.per_min)], ['per slime', (r) => n(r.per_slime)], ['earned', (r) => n(r.coins_earned)]], d.efficiency);
     $('dead-n').textContent = `· ${n(k.dead)} total, ${(100 * k.dead / total).toFixed(2)}%`;
