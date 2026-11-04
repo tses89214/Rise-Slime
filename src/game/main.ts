@@ -61,7 +61,7 @@ if (demo) {
   // a few merged / mutated slimes to look at
   const lounge = s.slimes.filter((x) => x.station === null);
   [[2, 'leaf'], [3, 'flame'], [2, 'lucky'], [2, 'stone'], [4, null]].forEach(([tier, trait], i) => { if (lounge[i]) Object.assign(lounge[i], { tier, trait }); });
-  s.coins = 20;
+  s.coins = 100;
 }
 
 const openDlg = import.meta.env.DEV ? new URLSearchParams(location.search).get('open') : null; // dev only: ?open=helpdlg for screenshots
