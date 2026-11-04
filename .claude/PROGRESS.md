@@ -26,7 +26,7 @@ M1 done and verified end to end: game -> collector -> Kafka (2 nodes, replicated
 - [ ] 寫 Medium 文章(引流用精簡版;素材:`docs/pipeline.md` 圖、`docs/learning.md`、M3 的 E2E 對帳數字、儀表板截圖)
 - [ ] 更新履歷:加 Rise & Slime(Kafka / Flink / ClickHouse 即時管線,去重、遲到事件、DLQ、schema 演進)
 - [ ] 更新個人網站:專案頁 + Medium 連結 + repo 連結
-- [ ] 發表前檢查:README 能讓陌生人跑起來、`CREDITS.md` 完整、itch.io 版 build 通過、遊戲英文名撞名確認
+- [x] 發表前檢查(2026-11-04 完成):README 重寫、`CREDITS.md` 逐項核對、build 改相對路徑可在 itch 子路徑執行;itch.io 已上線 https://tses89214.itch.io/rise-slime(封面與截圖在 `itch-media/`);撞名只查過網路搜尋,站內搜尋未查
 
 ## Next (之後再說)
 1. M4 (docs/design.md): recipes, floating prices and orders, store manager, A/B experiments, report site. **暫緩 (2026-11-03)**: 使用者決定先停在 M3,M4 設計留在 docs/design.md 不動,要開再重新評估範圍。
