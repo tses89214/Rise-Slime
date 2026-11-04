@@ -1,6 +1,12 @@
 # Progress
 
-_Last updated: 2026-11-03 (clocked out: learning lessons 1-6 done, collector browser clock check added)_
+_Last updated: 2026-11-04 (clocked out: published to itch.io, two Medium drafts ready, local stack stopped)_
+
+## 2026-11-04 summary
+- Game live: https://tses89214.itch.io/rise-slime. Merge is Lounge-only; lucky trait doubles mutation chance (5%→10%); "Backing up"→"Piling up"; bots have temperament (attention/greed) so leaderboard rows differ; dashboard column renamed `station lvls`; demo mode starts with 100 coins (dev only).
+- Docs: README rewritten, topic-creation startup step added (README + system.md). `docs/medium-game.md` + `docs/medium-pipeline.md` drafted (zh-TW, `[待補:第 1/2 篇網址]` placeholders, delete the HTML helper comments before publishing). Screenshots in `itch-media/`.
+- Clean E2E rerun: 10 windows reconciled, 0 mismatches. Local stack stopped (`down`, volumes kept; Flink job must be resubmitted).
+- Left: publish 2 posts + fill cross-links, resume, personal site, itch.io/Steam in-site name check.
 
 ## Status
 Collector rewritten in Python (FastAPI, `collector/main.py`); validates against `src/events/event.schema.json` exported from zod (`npm run schema`, vitest checks it is fresh). Tests: `npm test` 173 (not re-run 2026-11-03, no TS changes), `npm run test:collector` 17, typecheck and build pass. Verified end to end after the rewrite (full stack up, 10 bots real-time): collector -> Kafka -> Flink -> ClickHouse (2457 new events), DLQ rows arrive, `/api/dashboard` returns all 8 blocks. Not reconciled row for row. Stack was shut down with `down` (volumes kept). Dev-only 'ops dashboard' link at the game's bottom-left. Bots/core stay TS (Node is still needed for Vite, Vitest and bots). Next: M4.
