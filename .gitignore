@@ -4,4 +4,3 @@ dist
 .DS_Store
 *.zip
 assets/_incoming/
-.claude/
