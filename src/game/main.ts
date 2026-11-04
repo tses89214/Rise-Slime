@@ -97,7 +97,7 @@ $('scene').innerHTML =
   `<div class="zone"><div class="label">SHOP</div><div class="shop-img sprite"></div>${Array.from({ length: CUSTOMERS }, (_, i) => `<div class="cust" data-s="hidden" style="--row:${i % 4}"><span class="cs walk"></span><span class="cs carry"></span></div>`).join('')}<div id="shop-fx"></div></div>`;
 // sky/grass tiles live in one sheet; slice them so CSS can repeat them
 const tiles = new Image();
-tiles.src = '/original/tiles.png';
+tiles.src = 'original/tiles.png';
 void tiles.decode().then(() => {
   ['sky', 'grass-top', 'grass', 'fence'].forEach((name, i) => {
     const c = document.createElement('canvas');

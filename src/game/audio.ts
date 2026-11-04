@@ -2,13 +2,13 @@ import { $, store } from './util';
 
 // Browsers block autoplay, so music starts on the first click. Music and sfx toggles are remembered.
 const on = { music: store.get('rise-slime-music') === 'on', sfx: store.get('rise-slime-sfx') !== 'off' };
-const music = new Audio('/audio/music/good-morning.ogg');
+const music = new Audio('audio/music/good-morning.ogg');
 music.loop = true;
 music.volume = 0.25;
 
 export const sfx = (f: string) => {
   if (!on.sfx) return;
-  const a = new Audio(`/audio/sfx/${f}`);
+  const a = new Audio(`audio/sfx/${f}`);
   a.volume = 0.4;
   void a.play().catch(() => {});
 };

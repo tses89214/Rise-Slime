@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rise &amp; Slime</title>
 <style>
-  @font-face { font-family:m5x7; src:url(/fonts/m5x7.ttf); }
-  @font-face { font-family:monogram; src:url(/fonts/monogram.ttf); }
-  @font-face { font-family:kenpixel; src:url(/fonts/kenpixel.ttf); }
+  @font-face { font-family:m5x7; src:url(fonts/m5x7.ttf); }
+  @font-face { font-family:monogram; src:url(fonts/monogram.ttf); }
+  @font-face { font-family:kenpixel; src:url(fonts/kenpixel.ttf); }
   :root {
     --bg:#EEF0FF; --panel:#FFFFFF; --ink:#1F2547; --ink2:#4A5078; --primary:#FF9EC4; --income:#C9F2E3;
     --sky:#BFE3FF; --grass:#8EDB9A; --grass-line:#4FAF6A; --bar:#6FA8FF; --warn:#F08A24; --warn-line:#D9661A;
@@ -46,7 +46,7 @@
   :root { --u:3px; --i:2px; }
   @media (max-width:1099px) { :root { --u:2px; } }
   .sprite { background-repeat:no-repeat; flex:none; }
-  .slime { --w:calc(16*var(--u)); width:var(--w); height:var(--w); margin:calc(-3*var(--u)) 0; background-image:url(/original/slimes.png); background-size:calc(144*var(--u)) calc(80*var(--u)); background-position-y:calc(var(--row,0) * -16 * var(--u)); }
+  .slime { --w:calc(16*var(--u)); width:var(--w); height:var(--w); margin:calc(-3*var(--u)) 0; background-image:url(original/slimes.png); background-size:calc(144*var(--u)) calc(80*var(--u)); background-position-y:calc(var(--row,0) * -16 * var(--u)); }
   .slime, .sleeper { display:inline-block; }
   /* M3: tier shows as a badge, trait as a glow (CSS only, the sprite sheet is unchanged) */
   .slime[data-tier] { position:relative; }
@@ -64,9 +64,9 @@
   @keyframes hop { 0%{background-position-x:calc(-32*var(--u))} 20%{background-position-x:calc(-48*var(--u))} 40%{background-position-x:calc(-64*var(--u))} 60%{background-position-x:calc(-48*var(--u))} 80%{background-position-x:0} }
   @keyframes sleep { 0%{background-position-x:calc(-80*var(--u))} 50%{background-position-x:calc(-96*var(--u))} }
   @keyframes spin { 0%{background-position-x:calc(-112*var(--u))} 25%{background-position-x:0} 50%{background-position-x:calc(-128*var(--u))} 75%{background-position-x:0} }
-  .item { display:inline-block; width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(/original/items.png); background-size:calc(128*var(--i)) calc(16*var(--i)); }
+  .item { display:inline-block; width:calc(16*var(--i)); height:calc(16*var(--i)); background-image:url(original/items.png); background-size:calc(128*var(--i)) calc(16*var(--i)); }
   /* props.png frames (32px): 0 windmill, 1-4 blades at 0/22/45/68 degrees, 5 oven, 6 oven lit, 7 oven embers, 8 cloud */
-  .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(/original/props.png); background-size:calc(288*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
+  .prop { width:calc(32*var(--u)); height:calc(32*var(--u)); background-image:url(original/props.png); background-size:calc(288*var(--u)) calc(32*var(--u)); background-position-x:calc(var(--f) * -32 * var(--u)); }
   .p-windmill { --f:0; } .p-oven { --f:5; }
   .p-oven.baking { animation:oven 1.4s step-end infinite; }
   /* irregular bright/embers swaps read as flicker; the oven never goes dark while baking */
@@ -74,7 +74,7 @@
 
   #scene { position:relative; overflow:hidden; background:var(--sky) var(--sky-tile) 0 0/calc(16*var(--u)) calc(16*var(--u)); display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
   @media (max-width:759px) { #scene { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  .cloud { will-change:transform; position:absolute; width:calc(32*var(--i)); height:calc(32*var(--i)); background:url(/original/props.png) calc(-8*32*var(--i)) 0/calc(288*var(--i)) calc(32*var(--i)); animation:drift 60s linear infinite; }
+  .cloud { will-change:transform; position:absolute; width:calc(32*var(--i)); height:calc(32*var(--i)); background:url(original/props.png) calc(-8*32*var(--i)) 0/calc(288*var(--i)) calc(32*var(--i)); animation:drift 60s linear infinite; }
   @keyframes drift { from{transform:translateX(-80px)} to{transform:translateX(1400px)} }
   .zone { position:relative; height:calc(110*var(--u)); display:flex; flex-direction:column; align-items:center; padding-top:10px; }
   .zone::after { content:""; position:absolute; inset:auto 0 0 0; height:calc(36*var(--u)); z-index:0;
@@ -96,10 +96,10 @@
   .windmill .blades { --f:1; top:calc(-5*var(--u)); }
   .windmill.working .blades { animation:blades .6s step-end infinite; } /* 4 pre-drawn angles = a quarter turn (sails repeat every 90deg); no CSS rotate, which would shimmer */
   @keyframes blades { 0%{background-position-x:calc(-32*var(--u))} 25%{background-position-x:calc(-64*var(--u))} 50%{background-position-x:calc(-96*var(--u))} 75%{background-position-x:calc(-128*var(--u))} }
-  .shop-img { width:calc(64*var(--u)); height:calc(48*var(--u)); background:url(/original/shop.png) 0 0/calc(64*var(--u)) calc(48*var(--u)); position:absolute; bottom:calc(28*var(--u)); right:0; z-index:1; }
+  .shop-img { width:calc(64*var(--u)); height:calc(48*var(--u)); background:url(original/shop.png) 0 0/calc(64*var(--u)) calc(48*var(--u)); position:absolute; bottom:calc(28*var(--u)); right:0; z-index:1; }
   /* customers wander the open ground by the shop (moved by JS with transforms), sometimes go in and come out hugging bread */
   .cust { position:absolute; left:0; bottom:calc(6*var(--u)); width:calc(16*var(--u)); height:calc(16*var(--u)); z-index:2; transition:transform linear; will-change:transform; }
-  .cust .cs { position:absolute; inset:0; background:url(/original/customers.png) 0 calc(var(--row,0) * -16 * var(--u))/calc(64*var(--u)) calc(64*var(--u)); }
+  .cust .cs { position:absolute; inset:0; background:url(original/customers.png) 0 calc(var(--row,0) * -16 * var(--u))/calc(64*var(--u)) calc(64*var(--u)); }
   .cust .carry, .cust[data-s=carry] .walk, .cust[data-s=hidden] { display:none; }
   .cust[data-s=carry] .carry { display:block; }
   .cust[data-s=walk] .walk { animation:step .5s step-end infinite; }
