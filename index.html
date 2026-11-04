@@ -118,7 +118,7 @@
   .card .top { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0 12px; }
   .card h2 { font-size:40px; }
   .card .row { display:flex; justify-content:space-between; color:var(--ink2); }
-  /* queue bar: grey starved < 2 <= blue ok < 10 <= yellow busy < 20 <= orange backing up < 50 <= red jammed. Length is logarithmic; ticks mark 10 / 20 / 50. */
+  /* queue bar: grey starved < 2 <= blue ok < 10 <= yellow busy < 20 <= orange piling up < 50 <= red jammed. Length is logarithmic; ticks mark 10 / 20 / 50. */
   .bar { position:relative; height:14px; background:#E1E5F7; border:3px solid var(--ink); }
   .bar i { display:block; height:100%; background:var(--bar); transition:width .3s steps(6); }
   .bar b { position:absolute; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:var(--ink); opacity:.5; }
@@ -207,7 +207,7 @@
     <li><i class="sw" style="background:#B7BEDD"></i>Starved: nothing to work on. The slimes sleep.</li>
     <li><i class="sw" style="background:#6FA8FF"></i>Fine: under <b data-qv="busy"></b> waiting.</li>
     <li><i class="sw" style="background:#F5C342"></i>Getting busy: <b data-qv="busy"></b> or more.</li>
-    <li><i class="sw" style="background:#F08A24"></i>Backing up: <b data-qv="backed"></b> or more. Add workers or upgrade.</li>
+    <li><i class="sw" style="background:#F08A24"></i>Piling up: <b data-qv="backed"></b> or more waiting. Add workers or upgrade.</li>
     <li><i class="sw" style="background:#E2604A"></i>Jammed: <b data-qv="jam"></b> or more.</li>
   </ul>
 </dialog>
