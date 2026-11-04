@@ -7,7 +7,11 @@ Portfolio project. The pipeline handles duplicates (dedup by `event_id`), late e
 (15 min allowed lateness, windows re-emitted), malformed events (dead-letter topic) and
 schema evolution (v1 and v2 events coexist).
 
-## Play (no setup beyond Node)
+## Play
+
+In the browser: https://tses89214.itch.io/rise-slime
+
+Or locally (no setup beyond Node):
 
 Needs Node 20+.
 
