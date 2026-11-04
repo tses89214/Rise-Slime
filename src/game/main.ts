@@ -13,7 +13,7 @@ const SECONDS = { farm: 1, mill: 3, bakery: 5 };
 const CUSTOMERS = 7;
 const MAX_DRAWN = 10;
 const barPct = (stock: number) => Math.min(100, (100 * Math.log10(1 + stock)) / Math.log10(1 + 2 * QUEUE.jam)); // log scale: twice the jam level fills the bar
-const TICKS = [QUEUE.busy, QUEUE.backed, QUEUE.jam]; // where the queue turns busy / backing up / jammed // per zone: 5 per row, 2 rows; the rest shows as "+N"
+const TICKS = [QUEUE.busy, QUEUE.backed, QUEUE.jam]; // where the queue turns busy / piling up / jammed // per zone: 5 per row, 2 rows; the rest shows as "+N"
 
 // --- achievements ---
 const toast = (text: string) => {
@@ -225,7 +225,7 @@ function render() {
     const list = by[id], n = list.length, st = s.stations[id], u = ui.st[id], stock = Math.floor(st.stock);
     const starved = id !== 'farm' && n > 0 && st.stock < QUEUE.starved;
     const q = id === 'farm' ? 'none' : starved ? 'starved' : st.stock >= QUEUE.jam ? 'jam' : st.stock >= QUEUE.backed ? 'warn' : st.stock >= QUEUE.busy ? 'busy' : n === 0 && st.stock >= QUEUE.starved ? 'warn' : 'ok';
-    const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Backing up!', jam: 'Jammed!' }[q]!;
+    const note = { none: '—', starved: 'Starved', ok: '', busy: 'Getting busy', warn: n === 0 ? 'No workers!' : 'Piling up!', jam: 'Jammed!' }[q]!;
     setText(u.n, `${n}/${st.slots}`);
     setText(u.lv, String(st.level));
     setText(u.rate, `${((list.reduce((a, x) => a + slimePower(x, id), 0) * speedMultiplier(st.level)) / SECONDS[id]).toFixed(1)} ${OUT[id]}/s`);
