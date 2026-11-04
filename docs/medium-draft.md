@@ -3,7 +3,7 @@
 - 這是 Medium 引流用精簡版草稿,語言 zh-TW,技術名詞保留英文。
 - 數字都來自 .claude/PROGRESS.md 的 E2E 對帳紀錄與 docs/pipeline.md;標 [待補] 的地方是還沒有素材(截圖、發表日期)。
 - 「待確認」清單在檔案最後,不要把清單內的說法寫成已驗證的事實。
-- 圖檔:docs/pipeline-services.png、docs/pipeline-tables.png;儀表板截圖需要重新拍(指令見 docs/system.md)。
+- 圖檔:docs/pipeline-services.png、docs/pipeline-tables.png、itch-media/shot1-main.png(遊戲畫面,demo 狀態);儀表板截圖還沒拍(指令見 docs/system.md)。
 - Repo:https://github.com/tses89214/Rise-Slime
 -->
 
@@ -13,7 +13,7 @@
 
 我是資料工程師。工作上很難自己決定「資料長什麼樣」,所以我做了一款小遊戲 *Rise & Slime*(史萊姆麵包坊放置遊戲),讓玩家的每個動作都變成一筆事件,送進一條完整的即時管線。遊戲只是水源,重點是管線怎麼面對髒資料。
 
-[待補:遊戲截圖一張]
+![遊戲畫面](../itch-media/shot1-main.png)
 
 ## 整體架構
 
@@ -71,6 +71,29 @@ Flink 的視窗與 watermark 用的是事件裡的 `event_time`,而這個時間�
 
 我的處理是在 collector 加一道檢查:瀏覽器端的 `event_time` 與收件時間差超過 10 分鐘就進 DLQ(bots 豁免,因為 fast-forward 與斷線暫存本來就合法)。這是權宜之計:`client` 欄位本身可以偽造,而且 10 分鐘對休眠中的分頁是否太緊,我也還沒驗證。比較根本的做法是改用 collector 自己蓋的 `ingested_at`,那是唯一可信的時鐘。
 
+## 讓假玩家不要長得一模一樣
+
+第一版的 bots 有三種 persona,但同一種 persona 的 bot 完全一樣:`optimizer` 的決策沒有用到任何亂數。儀表板的「最富有玩家」排行榜上,5 個 optimizer 的數字一模一樣:4,123 金幣、38 隻史萊姆、138 級。這種資料拿來看分佈、看排名、看離群值都沒意義。
+
+我給每個 bot 加了依 seed 決定的「脾氣」:每秒有多大機率動作(0.4 到 1.0),以及 optimizer 買史萊姆和擴充時的耐心(1 到 2.5 倍)。用獨立的亂數流,原本的遊戲亂數不受影響,舊 seed 的行為不變。改完後同樣是 optimizer,金幣從 264 到 1,004 都有(20 個 bots、600 秒、`--speed 20` 的一輪,排行榜前幾名的觀察值,不是統計結果)。我也加了一個測試:5 個不同 seed 的 optimizer 跑 600 秒,結果至少要有 4 種不同的「金幣/史萊姆數」,以免之後有人把這個隨機性改回去。
+
+## 為了寫 Help 才發現的規則 bug
+
+玩家問我「lucky 史萊姆是幹嘛的」,我去寫 Help 時才讀到:lucky 的設計是「合成時變異機率翻倍」。但實際上程式只有在「三個材料都沒有 trait」時才擲變異的骰子,而 lucky 本身就是一個 trait,所以只要材料裡有 lucky,骰子就不會被用到,「翻倍」永遠沒有效果。事件裡記錄的 `mutation_chance: 0.1` 其實是假的。測試只驗了機率的數字,沒驗有沒有真的變異。
+
+修法是每次合成都擲骰子,成功就給隨機 trait,失敗才繼承。新增的測試用 7% 的骰值:有 lucky 會變異、沒有 lucky 不會。
+
+這件事對資料管線也有教訓:`slime_merged.mutated` 的語意變了,但 `schema_version` 沒有跟著動(欄位的型別沒變,只有意義變了)。舊資料與新資料在 ClickHouse 裡並存,跨日期比較變異率時要自己知道這件事。schema 版本管不到「語意漂移」。
+
+另一個類似的發現:合成原本會把正在工作的史萊姆從工作站抽走去湊 3 隻。玩家的 FARM 產出會莫名掉下來,卻沒有任何提示。改成只用 Lounge 裡的史萊姆。這個改動又讓 optimizer bot 壞掉:它原本一有空位就擴充,Lounge 永遠湊不到 3 隻,所以一次都不合成,而且只擴充 farm(跑 7200 秒會變成 farm 48 個、mill 10 個、bakery 10 個)。我讓它擴充「離理想比例最遠」的站,並且等 Lounge 湊滿 3 隻再決定要合成還是擴充。
+
+## 上架 itch.io 時踩的兩個坑
+
+- **絕對路徑**:本機開發時資源是 `/fonts/…`、`/original/…`、`/audio/…`,放到 itch.io 會 404,因為遊戲被放在 `html.itch.zone/html/<id>/` 這種子路徑下。我改成相對路徑並設 `base: './'`,再把 build 放進本機伺服器的子路徑,逐一檢查 16 個資源都是 200。上線後我在 itch.io 上實際玩過,可以正常執行。
+- **全新環境的啟動順序**:`down -v` 後 `events` 這個 topic 還不存在(要等 collector 第一次寫入才會自動建立),但文件的順序是先提交 Flink job,job 讀不到 topic 就一直 RESTARTING。這是我為了拿到乾淨的對帳數字,清資料重跑時才遇到的。現在 README 在提交 job 前先建好 topic。
+
+兩個坑的共同點:它們都在「我自己的機器上一直沒問題」,因為舊的狀態(舊資料、已存在的 topic、根路徑)把問題蓋住了。
+
 ## 這個專案教我的事
 
 - Kafka、Flink、ClickHouse 各自的「正確」是不同層次的:Kafka 保證順序與不遺失,Flink 負責時間語意,ClickHouse 負責最終一致的查詢。把「去重」放在哪一層,是設計時最花時間想的事。
@@ -97,6 +120,8 @@ README 有「只玩遊戲」與「跑完整管線」兩種啟動方式。
 1. 對帳數字是 2026-11-04 `down -v` 後單次乾淨跑(20 bots × 600 s,即時)查出來的。查詢是 ClickHouse 的 JOIN:視窗表 FINAL 對 `events FINAL` 的同分鐘彙總,涵蓋事件數、bread_sold、各站 produced / consumed / 玩家數、合成、擴充。尚未驗證:長時間跑(合成與擴充樣本太小)、遲到事件(`late_1m` 這輪 0 筆)、斷線補送的路徑、`avg` 類欄位(slimes、input_stock)。
 2. 「watermark 被推到未來會丟其他玩家事件」:PROGRESS 標為「學習時讀碼發現,未實測」,文章已照樣標明。
 3. Dead letters 18 筆全是 `unknown event_type`,與 0.5% 注入率的預期數量相近,但沒有逐筆比對,文章沒有寫成「等於注入數量」。
-4. 儀表板截圖、遊戲截圖尚未拍。
-5. 遊戲英文名撞名:只做過網路搜尋(沒有同名,最近的是 Rise of the Slime),未查 itch.io / Steam 站內搜尋。
+4. 遊戲截圖用的是 demo 狀態(金幣、史萊姆數是手設的),不是真實進度;儀表板截圖尚未拍。
+5. 遊戲英文名撞名:只做過網路搜尋(沒有同名,最近的是 Rise of the Slime),未查 itch.io / Steam 站內搜尋。itch.io 已上線,頁面由作者本人確認可玩。
+6. 「optimizer 從 264 到 1,004 金幣」是一次 20 bots × 600 秒的觀察,該輪資料已在後續 `down -v` 時清掉,無法重查;文章已標明不是統計結果。「5 個 optimizer 一模一樣」的數字是作者從儀表板貼給我的。
+7. 「mutated 語意變了但 schema_version 沒升」:這是我的判斷,實際沒有升版本;是否該升版本是設計取捨。
 -->
